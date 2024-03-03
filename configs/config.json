@@ -1,13 +1,20 @@
 {
-    "accountName": "alice",
-    "DB_port": 5432,
+    "accountName": "validator-lon",
+    "DB_port": "5432",
     "DB_host": "localhost",
     "DB_user": "forkscanner",
     "DB_password" : "forkscanner",
     "DB_name" : "judge",
     "forkscanner_host": "0.0.0.0",
-    "forkscanner_ws_port": 8340,
-    "forkscanner_rpc_port": 8339,
-    "nyksd_url": "http://0.0.0.0:1317"
-
+    "forkscanner_ws_port": "8340",
+    "forkscanner_rpc_port": "8339",
+    "nyksd_url": "https://nyks.twilight-explorer.com/api",
+    "nyksd_socket_url" : "ws://nyks.twilight-explorer.com/tendermint/websocket",
+    "confirmation_limit": "3",
+    "wallet_passphrase": "the correct horse battery staple",
+    "unlocking_time": "20",
+    "no_of_Validators": "6",
+    "csv_delay": "10",
+    "sweep_preblock": "5",
+    "height_diff_between_judges" : "10"
 }

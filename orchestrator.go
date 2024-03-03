@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -15,8 +16,7 @@ import (
 func orchestrator(accountName string, forkscanner_url url.URL) {
 	log.SetFlags(0)
 
-	go startBridge(accountName, forkscanner_url)
-
+	fmt.Println("starting orchestrator")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -39,7 +39,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 				return
 			}
 			process_message(accountName, message)
-			log.Printf("recv: %s", message)
+			// log.Printf("recv: %s", message)
 		}
 	}()
 
@@ -78,6 +78,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 			case <-done:
 			case <-time.After(time.Second):
 			}
+			fmt.Println("exiting orchestrator")
 			return
 		}
 	}
@@ -85,36 +86,28 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 
 // This function is a buffer between websocket and send_transaction to add future functionality
 func process_message(accountName string, message []byte) {
-	var c BlockData
+	var c BtcFkBlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {
-		log.Printf("Unmarshal: %v\n", err)
+		fmt.Printf("Unmarshal: %v\n", err)
 	}
-
-	log.Println("new_message test", c)
 
 	active_chaintips := c.ChainTip
 
 	if len(active_chaintips) <= 0 {
-		log.Println("first mesaage or empty list")
 		return
 	}
 
-	log.Printf("active chain tip : ", active_chaintips[0])
-	log.Printf("Row: %v\n", active_chaintips[0].Node)
-	log.Println(active_chaintips[0].Block)
+	fmt.Println("active chain tip : ", active_chaintips[0])
 
 	active_chaintip := active_chaintips[0]
-
 	cosmos_client := getCosmosClient()
-	cosmos_address := getCosmosAddress(accountName, cosmos_client)
 
 	msg := &types.MsgSeenBtcChainTip{
 		Height:           uint64(active_chaintip.Height),
 		Hash:             active_chaintip.Block,
-		BtcOracleAddress: cosmos_address.String(),
+		BtcOracleAddress: oracleAddr,
 	}
-
-	sendTransaction(accountName, cosmos_client, msg, "SeenBtcChainTip")
-
+	fmt.Println("Sending Chain Tip Seen Transaction for btc height :  ", active_chaintip.Height)
+	sendTransactionSeenBtcChainTip(accountName, cosmos_client, msg)
 }
