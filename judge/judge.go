@@ -81,20 +81,30 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, err
 	}
 
-	fee, err := utils.GetFeeFromBtcNode(sweepTx)
+	feeRate, err := utils.GetFeeRateFromBtcNode(sweepTx)
 	if err != nil {
 		fmt.Println("error in getting fee : ", err)
 		return "", "", "", 0, err
 	}
 
-	feeUtxo, err := utils.CreateFeeUtxo(fee)
+	sweepTxWithFeeHex, err := comms.FundRawTx(hexTx, feeRate, outputs, wallet)
 	if err != nil {
-		fmt.Println("error in creating fee utxo : ", err)
+		fmt.Println("error in funding raw tx : ", err)
 		return "", "", "", 0, err
 	}
-	inputs = append(inputs, comms.TxInput{Txid: feeUtxo, Vout: 0, Sequence: int64(wire.MaxTxInSequenceNum - 10)})
+	sweepTx, err = utils.CreateTxFromHex(sweepTxWithFeeHex)
+	if err != nil {
+		fmt.Println("error decoding tx with fee : ", err)
+		return "", "", "", 0, err
+	}
 
-	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet)
+	// feeUtxo, err := utils.CreateFeeUtxo(fee)
+	// if err != nil {
+	// 	fmt.Println("error in creating fee utxo : ", err)
+	// 	return "", "", "", 0, err
+	// }
+
+	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet, feeRate)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
 		return "", "", "", 0, err
@@ -596,23 +606,25 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 		return
 	}
 
-	sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId+1))
-	fmt.Println("sweep address from chain: ", sweepAddresses.ProposeSweepAddressMsg.BtcAddress)
-	if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
-		fmt.Println("issue with sweep address while creating refund tx")
-		fmt.Println("finishing refund process")
-		return
-	}
+	// sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId+1))
+	// fmt.Println("sweep address from chain: ", sweepAddresses.ProposeSweepAddressMsg.BtcAddress)
+	// if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
+	// 	fmt.Println("issue with sweep address while creating refund tx")
+	// 	fmt.Println("finishing refund process")
+	// 	return
+	// }
 
-	refundTxHex, psbt, err := generateRefundTx(sweepTxs[0].Tx, uint64(reserveId), uint64(roundId+1))
-	if err != nil {
-		fmt.Println("issue creating refund tx")
-		fmt.Println("finishing refund process")
-		return
-	}
+	// refundTxHex, psbt, err := generateRefundTx(sweepTxs[0].Tx, uint64(reserveId), uint64(roundId+1))
+	// if err != nil {
+	// 	fmt.Println("issue creating refund tx")
+	// 	fmt.Println("finishing refund process")
+	// 	return
+	// }
+
+	refundTxHex := hex.EncodeToString([]byte("placeholder_refund_tx"))
 
 	cosmos := comms.GetCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveId), uint64(roundId+1), psbt, judgeAddr)
+	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveId), uint64(roundId+1), refundTxHex, judgeAddr)
 	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 	db.InsertUnSignedRefundtx(dbconn, refundTxHex, int64(reserveId), int64(roundId+1))
 	fmt.Println("finishing refund process")
@@ -664,7 +676,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
-	s, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(reserveId))
+	s, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(roundId+1))
 	if err != nil {
 		fmt.Println("error in getting unsigned sweep tx : ", err)
 		fmt.Println("finishing signed sweep process")
@@ -786,29 +798,43 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
-	refundTxs, err := db.QueryUnSignedRefundtx(dbconn, int64(reserveId), int64(roundId+1))
-	if err != nil {
-		fmt.Println("error in getting unsigned refund tx : ", err)
-		fmt.Println("finishing signed refund process with error")
+	// refundTxs, err := db.QueryUnSignedRefundtx(dbconn, int64(reserveId), int64(roundId+1))
+	// if err != nil {
+	// 	fmt.Println("error in getting unsigned refund tx : ", err)
+	// 	fmt.Println("finishing signed refund process with error")
 
+	// 	return
+	// }
+	// if len(refundTxs) <= 0 {
+	// 	fmt.Println("no unsigned refund tx found in the database")
+	// 	fmt.Println("finishing signed refund process with error")
+	// 	return
+	// }
+
+	// unsignedRefundTxHex := refundTxs[0].Tx
+	// fmt.Println("unsigned refund tx hex in Process refundTx: \n", unsignedRefundTxHex)
+	// refundTx, err := utils.CreateTxFromHex(unsignedRefundTxHex)
+	// if err != nil {
+	// 	fmt.Println("error decoding refund txhex in processSignedRefund: inside judge")
+	// 	fmt.Println(err)
+	// }
+
+	// signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveId), uint64(roundId+1), dbconn, judgeAddr)
+
+	addrs := comms.GetProposedSweepAddress(reserveId, roundId)
+	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
+		fmt.Println("address not found in DB")
 		return
 	}
-	if len(refundTxs) <= 0 {
-		fmt.Println("no unsigned refund tx found in the database")
-		fmt.Println("finishing signed refund process with error")
+
+	addresses := db.QuerySweepAddress(dbconn, addrs.ProposeSweepAddressMsg.BtcAddress)
+	if len(addresses) <= 0 {
+		fmt.Println("address not found in DB")
 		return
 	}
+	newReserveAddress := addresses[0]
 
-	unsignedRefundTxHex := refundTxs[0].Tx
-	fmt.Println("unsigned refund tx hex in Process refundTx: \n", unsignedRefundTxHex)
-	refundTx, err := utils.CreateTxFromHex(unsignedRefundTxHex)
-	if err != nil {
-		fmt.Println("error decoding refund txhex in processSignedRefund: inside judge")
-		fmt.Println(err)
-	}
-
-	signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveId), uint64(roundId+1), dbconn, judgeAddr)
-
+	signedRefundTx := []byte("placeholder_signed_refund_tx")
 	signedRefundTxHex := hex.EncodeToString(signedRefundTx)
 	fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
 

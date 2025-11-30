@@ -491,7 +491,7 @@ func DecodeBtcScript(script string) string {
 	return decodedScript
 }
 
-func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
+func GetFeeRateFromBtcNode(tx *wire.MsgTx) (int64, error) {
 	walletName := viper.GetString("wallet_name")
 	feeRateAdjustment := viper.GetInt64("fee_rate_adjustment")
 	result, err := comms.GetEstimateFee(walletName)
@@ -505,14 +505,8 @@ func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", feeRateInBtc)
 	feeRate := BtcToSats(feeRateInBtc) + feeRateAdjustment
 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
-	baseSize := tx.SerializeSizeStripped()
-	totalSize := tx.SerializeSize()
-	weight := (baseSize * 3) + totalSize
-	vsize := (weight + 3) / 4
-	fmt.Println("tx size in bytes : ", vsize)
-	fee := float64(vsize) * float64(feeRate/1024)
-	fmt.Println("fee for this sweep : ", fee)
-	return int64(fee), nil
+	return feeRate, nil
+
 }
 
 // func GetBtcFeeRate() btcOracleTypes.FeeRate {

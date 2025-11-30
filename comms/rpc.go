@@ -188,6 +188,16 @@ type RPCResponseCreatePsbt struct {
 	ID    int         `json:"id"`
 }
 
+type RPCResponseFundRawTx struct {
+	Result struct {
+		Hex       string  `json:"hex"`
+		Fee       float64 `json:"fee"`
+		Changepos float32 `json:"changepos"`
+	} `json:"result"`
+	Error interface{} `json:"error"`
+	ID    int         `json:"id"`
+}
+
 type RPCResponseSignPsbt struct {
 	Result struct {
 		Psbt      string  `json:"psbt"`
@@ -370,10 +380,23 @@ func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	return response.Result, nil
 }
 
-func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string) (string, error) {
+func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, fee_rate int64) (string, error) {
 	feeRate := make(map[string]float64)
-	feeRate["feeRate"] = 0
-	data := []interface{}{inputs, outputs, locktime, feeRate}
+	feeRate["feeRate"] = float64(fee_rate)
+
+	// Determine which output indices should have fee subtracted (all except last)
+	var subtractFeeIndices []int
+	for i := 0; i < len(outputs)-1; i++ {
+		subtractFeeIndices = append(subtractFeeIndices, i)
+	}
+
+	// Options map for walletcreatefundedpsbt
+	options := map[string]interface{}{
+		"feeRate":                feeRate["feeRate"],
+		"subtractFeeFromOutputs": subtractFeeIndices,
+	}
+
+	data := []interface{}{inputs, outputs, locktime, options}
 	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet)
 	fmt.Println("result Create Psbt: ", string(result))
 	var response RPCResponseCreatePsbt
@@ -404,6 +427,39 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 	}
 
 	return response.Result, nil
+}
+
+func FundRawTx(txHex string, fee_rate int64, outputs []TxOutput, wallet string) (string, error) {
+
+	feeRate := make(map[string]float64)
+	feeRate["feeRate"] = float64(fee_rate)
+
+	// Determine which output indices should have fee subtracted (all except last)
+	var subtractFeeIndices []int
+	for i := 0; i < len(outputs)-1; i++ {
+		subtractFeeIndices = append(subtractFeeIndices, i)
+	}
+
+	// Options map for walletcreatefundedpsbt
+	options := map[string]interface{}{
+		"feeRate":                feeRate["feeRate"],
+		"subtractFeeFromOutputs": subtractFeeIndices,
+	}
+	data := []interface{}{txHex, options}
+	result, _ := SendRPC("fundrawtransaction", data, wallet)
+	fmt.Println("result in FundRawTx: ", string(result))
+	var response RPCResponseFundRawTx
+	err := json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return "", err
+	}
+
+	if response.Error != nil {
+		return "", errors.New("error in FundRawTx")
+	}
+
+	return response.Result.Hex, nil
 }
 
 func SignPsbt(psbtStr string, wallet string) ([]string, error) {

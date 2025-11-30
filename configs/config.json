@@ -15,17 +15,13 @@
     "nyksd_socket_url" : "ws://nyks.twilight-explorer.com/tendermint/websocket",
     "confirmation_limit": "3",
    
-    "unlocking_time": "20",
-    "no_of_Validators": "6",
-    "csv_delay": "10",
-    "sweep_preblock": "5",
-    "height_diff_between_judges" : "10",
+    "unlocking_time": "10",
+    "sweep_preblock": "3",
     "running_mode" : "judge",
     "judge_address" : "",
     "validator" : "true",
     "own_validator_address" : "",
     "own_address" : "",
-    "judge_address" : "",
     
     
     "btc_node_host" : "http://143.244.138.170:8332",

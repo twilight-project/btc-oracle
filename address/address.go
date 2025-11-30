@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -64,15 +63,7 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 	for _, signer := range signers {
 		multiscript_params += fmt.Sprintf(",%s", signer.SignerBtcPublicKey)
 	}
-
-	number := fmt.Sprintf("%v", viper.Get("csv_delay"))
-	delayPeriod, _ := strconv.Atoi(number)
-	payment_hash := hex.EncodeToString(hash160(preimage))
-
-	watchtowerRefundKey := "[5a5f39c1/44'/0'/0']xpub6Ckui1oewD1ho9PEQqPc92ToZgNDuRHpeDHfjiJpwbq8zXyAaG1dbNd8btygQNEJov7bsoZPLLK6zosvEevC2A8JzceW1wkebaW6JeV5HVZ/0/*"
-	judgePubKry := viper.GetString("btc_xpublic_key")
-
-	descriptorScript := fmt.Sprintf("wsh(and_v(and_v(v:multi(%s),v:hash160(%s)),or_d(pk(%s),andor(pk(%s),after(%d),older(%d)))))", multiscript_params, payment_hash, watchtowerRefundKey, judgePubKry, unlockHeight, delayPeriod)
+	descriptorScript := fmt.Sprintf("wsh(and_v(v:multi(%s),after(%d)))", multiscript_params, unlockHeight)
 
 	fmt.Println(descriptorScript)
 	return descriptorScript, nil
