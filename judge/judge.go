@@ -821,7 +821,7 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 
 	// signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveId), uint64(roundId+1), dbconn, judgeAddr)
 
-	addrs := comms.GetProposedSweepAddress(reserveId, roundId)
+	addrs := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId))
 	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
 		fmt.Println("address not found in DB")
 		return
