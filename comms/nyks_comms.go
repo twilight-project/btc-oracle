@@ -14,6 +14,7 @@ import (
 	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ignite-hq/cli/ignite/pkg/cosmosclient"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
 	"github.com/spf13/viper"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
@@ -212,6 +213,7 @@ func GetCosmosClient() cosmosclient.Client {
 
 	cosmosOptions := []cosmosclient.Option{
 		cosmosclient.WithHome(homePath),
+		cosmosclient.WithKeyringBackend("file"),
 	}
 
 	config := sdktypes.GetConfig()
