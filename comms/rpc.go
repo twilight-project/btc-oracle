@@ -384,16 +384,9 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 	feeRate := make(map[string]float64)
 	feeRate["feeRate"] = float64(fee_rate)
 
-	// Determine which output indices should have fee subtracted (all except last)
-	var subtractFeeIndices []int
-	for i := 0; i < len(outputs)-1; i++ {
-		subtractFeeIndices = append(subtractFeeIndices, i)
-	}
-
 	// Options map for walletcreatefundedpsbt
 	options := map[string]interface{}{
-		"feeRate":                feeRate["feeRate"],
-		"subtractFeeFromOutputs": subtractFeeIndices,
+		"feeRate": feeRate["feeRate"],
 	}
 
 	data := []interface{}{inputs, outputs, locktime, options}
@@ -434,16 +427,9 @@ func FundRawTx(txHex string, fee_rate int64, outputs []TxOutput, wallet string) 
 	feeRate := make(map[string]float64)
 	feeRate["feeRate"] = float64(fee_rate)
 
-	// Determine which output indices should have fee subtracted (all except last)
-	var subtractFeeIndices []int
-	for i := 0; i < len(outputs)-1; i++ {
-		subtractFeeIndices = append(subtractFeeIndices, i)
-	}
-
 	// Options map for walletcreatefundedpsbt
 	options := map[string]interface{}{
-		"feeRate":                feeRate["feeRate"],
-		"subtractFeeFromOutputs": subtractFeeIndices,
+		"feeRate": feeRate["feeRate"]
 	}
 	data := []interface{}{txHex, options}
 	result, _ := SendRPC("fundrawtransaction", data, wallet)
