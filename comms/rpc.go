@@ -429,7 +429,7 @@ func FundRawTx(txHex string, fee_rate int64, outputs []TxOutput, wallet string) 
 
 	// Options map for walletcreatefundedpsbt
 	options := map[string]interface{}{
-		"feeRate": feeRate["feeRate"]
+		"feeRate": feeRate["feeRate"],
 	}
 	data := []interface{}{txHex, options}
 	result, _ := SendRPC("fundrawtransaction", data, wallet)
