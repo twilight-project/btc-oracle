@@ -212,7 +212,7 @@ func GetCosmosClient() cosmosclient.Client {
 
 	cosmosOptions := []cosmosclient.Option{
 		cosmosclient.WithHome(homePath),
-		cosmosclient.WithKeyringBackend("file"),
+		cosmosclient.WithKeyringBackend("test"),
 	}
 
 	config := sdktypes.GetConfig()
