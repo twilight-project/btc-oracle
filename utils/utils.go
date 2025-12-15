@@ -35,6 +35,7 @@ func InitConfigFile() {
 }
 
 func SetDelegator(valAddr string, oracleAddr string, btcPublicKey string) {
+	return
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPublicKey, oracleAddr, accountName)
 	fmt.Println("delegate command : ", command)

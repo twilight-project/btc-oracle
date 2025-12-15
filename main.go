@@ -46,10 +46,10 @@ func initialize() (string, string, *sql.DB) {
 		panic("")
 	}
 
-	btcPublicKey := viper.GetString("btc_xpublic_key")
-	if validator == true || running_mode == "judge" {
-		utils.SetDelegator(valAddr, oracleAddr, btcPublicKey)
-	}
+	// btcPublicKey := viper.GetString("btc_xpublic_key")
+	// if validator == true || running_mode == "judge" {
+	// 	utils.SetDelegator(valAddr, oracleAddr, btcPublicKey)
+	// }
 
 	utils.LoadBtcWallet(viper.GetString("wallet_name"))
 
