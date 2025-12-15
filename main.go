@@ -33,7 +33,7 @@ func initialize() (string, string, *sql.DB) {
 	dbconn := db.InitDB()
 	valAddr := viper.GetString("own_validator_address")
 	oracleAddr := viper.GetString("own_address")
-	validator := viper.GetBool("validator")
+	// validator := viper.GetBool("validator")
 
 	allowed_modes := map[string]bool{
 		"judge":  true,
