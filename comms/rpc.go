@@ -278,7 +278,7 @@ func SendRPC(method string, data []interface{}, wallet string) ([]byte, error) {
 	client := &http.Client{}
 
 	// Create a HTTP request
-	host = host + "/wallet/" + wallet
+	host = "http://" + host + "/wallet/" + wallet
 	req, err := http.NewRequest("POST", host, bytes.NewBuffer(requestJSON))
 	if err != nil {
 		fmt.Println("Error creating request: ", err)
@@ -558,7 +558,7 @@ func GetAddressInfo(address string, wallet string) (AddressInfo, error) {
 	var response JSONRPCResponseAddressInfo
 	result, err := SendRPC("getaddressinfo", data, wallet)
 	if err != nil {
-		fmt.Println("error getting descriptor info : ", err)
+		fmt.Println("error getting Address info : ", err)
 		return AddressInfo{}, err
 	}
 

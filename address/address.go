@@ -260,7 +260,7 @@ func registerAddressOnForkscanner(address string) {
 	}
 	fmt.Println(string(data))
 
-	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
+	resp, err := http.Post("http://"+viper.GetString("forkscanner_host")+":"+viper.GetString("forkscanner_rpc_port"), "application/json", strings.NewReader(string(data)))
 	if err != nil {
 		log.Fatalf("Post: %v", err)
 	}
@@ -300,7 +300,7 @@ func UnRegisterAddressOnForkscanner(address string) {
 	}
 	fmt.Println(string(data))
 
-	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
+	resp, err := http.Post("http://"+viper.GetString("forkscanner_host")+":"+viper.GetString("forkscanner_rpc_port"), "application/json", strings.NewReader(string(data)))
 	if err != nil {
 		log.Fatalf("Post: %v", err)
 	}
