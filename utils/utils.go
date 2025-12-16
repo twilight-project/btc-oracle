@@ -35,7 +35,6 @@ func InitConfigFile() {
 }
 
 func SetDelegator(valAddr string, oracleAddr string, btcPublicKey string) {
-	return
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPublicKey, oracleAddr, accountName)
 	fmt.Println("delegate command : ", command)
@@ -595,22 +594,43 @@ func SignFeeUtxo(tx *wire.MsgTx) (wire.TxWitness, error) {
 func GetUnlockHeightFromScript(script string) int64 {
 	// Split the decoded script into parts
 	height := int64(0)
-	part := 25
+	part := 10
 	parts := strings.Split(script, " ")
 	if len(parts) == 0 {
 		return height
 	}
-	// Reverse the byte order
-	for i, j := 0, len(parts[part])-2; i < j; i, j = i+2, j-2 {
-		parts[part] = parts[part][:i] + parts[part][j:j+2] + parts[part][i+2:j] + parts[part][i:i+2] + parts[part][j+2:]
-	}
+
+	heightstr := parts[part-1]
 	// Convert the first part from hex to decimal
-	height, err := strconv.ParseInt(parts[part], 16, 64)
-	if err != nil {
-		fmt.Println("Error converting block height from hex to decimal:", err)
+	if h, err := strconv.ParseInt(heightstr, 10, 64); err == nil {
+		return h
 	}
 
-	return height
+	// Otherwise treat as hex bytes in little-endian ScriptNum (e.g. "fe280e")
+	b, err := hex.DecodeString(heightstr)
+	if err != nil || len(b) == 0 {
+		return 0
+	}
+	return scriptNumLEToInt64(b)
+}
+
+func scriptNumLEToInt64(v []byte) int64 {
+	if len(v) == 0 {
+		return 0
+	}
+	neg := (v[len(v)-1] & 0x80) != 0
+	// clear sign bit
+	v = append([]byte(nil), v...) // copy to avoid mutating caller slice
+	v[len(v)-1] &^= byte(0x80)
+
+	var n int64
+	for i := 0; i < len(v); i++ {
+		n |= int64(v[i]) << (8 * i)
+	}
+	if neg {
+		n = -n
+	}
+	return n
 }
 
 func getUnlockHeightFromMiniscript(s string) ([]string, error) {
