@@ -332,7 +332,7 @@ func RegisterAddressOnValidators(dbconn *sql.DB) {
 				registerAddressOnForkscanner(address.ReserveAddress)
 				decodedScript := utils.DecodeBtcScript(address.ReserveScript)
 				height := utils.GetUnlockHeightFromScript(decodedScript)
-				db.InsertSweepAddress(dbconn, address.ReserveAddress, address.ReserveScript, nil, height+1, "", false)
+				db.InsertSweepAddress(dbconn, address.ReserveAddress, address.ReserveScript, nil, height, "", false)
 			}
 		}
 	}
@@ -343,7 +343,7 @@ func RegisterAddressOnValidators(dbconn *sql.DB) {
 				registerAddressOnForkscanner(address.BtcAddress)
 				decodedScript := utils.DecodeBtcScript(address.BtcScript)
 				height := utils.GetUnlockHeightFromScript(decodedScript)
-				db.InsertSweepAddress(dbconn, address.BtcAddress, address.BtcScript, nil, height+1, "", false)
+				db.InsertSweepAddress(dbconn, address.BtcAddress, address.BtcScript, nil, height, "", false)
 			}
 		}
 	}
