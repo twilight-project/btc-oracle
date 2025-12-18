@@ -384,9 +384,15 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 	feeRate := make(map[string]float64)
 	feeRate["feeRate"] = float64(fee_rate)
 
+	subtract := make([]int, 0, len(outputs))
+	for i := range outputs {
+		subtract = append(subtract, i)
+	}
+
 	// Options map for walletcreatefundedpsbt
 	options := map[string]interface{}{
-		"feeRate": feeRate["feeRate"],
+		"feeRate":                feeRate["feeRate"],
+		"subtractFeeFromOutputs": subtract,
 	}
 
 	data := []interface{}{inputs, outputs, locktime, options}
@@ -422,27 +428,30 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 	return response.Result, nil
 }
 
-func FundRawTx(txHex string, fee_rate int64, outputs []TxOutput, wallet string) (string, error) {
-
-	feeRate := make(map[string]float64)
-	feeRate["feeRate"] = float64(fee_rate)
-
-	// Options map for walletcreatefundedpsbt
-	options := map[string]interface{}{
-		"feeRate": feeRate["feeRate"],
+func FundRawTx(txHex string, feeRate int64, outputs []TxOutput, wallet string) (string, error) {
+	// Build [0, 1, 2, ...] for all existing outputs in the raw tx (before change is added)
+	subtract := make([]int, 0, len(outputs))
+	for i := range outputs {
+		subtract = append(subtract, i)
 	}
+
+	options := map[string]interface{}{
+		"fee_rate":               feeRate,
+		"subtractFeeFromOutputs": subtract,
+	}
+
 	data := []interface{}{txHex, options}
-	result, _ := SendRPC("fundrawtransaction", data, wallet)
-	fmt.Println("result in FundRawTx: ", string(result))
-	var response RPCResponseFundRawTx
-	err := json.Unmarshal(result, &response)
+
+	result, err := SendRPC("fundrawtransaction", data, wallet)
 	if err != nil {
-		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
 	}
 
-	if response.Error != nil {
-		return "", errors.New("error in FundRawTx")
+	fmt.Println("result in FundRawTx:", string(result))
+
+	var response RPCResponseFundRawTx
+	if err := json.Unmarshal(result, &response); err != nil {
+		return "", err
 	}
 
 	return response.Result.Hex, nil
