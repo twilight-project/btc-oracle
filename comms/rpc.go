@@ -380,9 +380,7 @@ func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	return response.Result, nil
 }
 
-func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, fee_rate int64) (string, error) {
-	feeRate := make(map[string]float64)
-	feeRate["feeRate"] = float64(fee_rate)
+func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, feeRate int64) (string, error) {
 
 	subtract := make([]int, 0, len(outputs))
 	for i := range outputs {
@@ -391,7 +389,7 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 
 	// Options map for walletcreatefundedpsbt
 	options := map[string]interface{}{
-		"feeRate":                feeRate["feeRate"],
+		"feeRate":                feeRate,
 		"subtractFeeFromOutputs": subtract,
 	}
 
@@ -436,7 +434,7 @@ func FundRawTx(txHex string, feeRate int64, outputs []TxOutput, wallet string) (
 	}
 
 	options := map[string]interface{}{
-		"fee_rate":               feeRate,
+		"feeRate":                feeRate,
 		"subtractFeeFromOutputs": subtract,
 	}
 

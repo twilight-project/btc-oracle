@@ -493,7 +493,6 @@ func DecodeBtcScript(script string) string {
 
 func GetFeeRateFromBtcNode(tx *wire.MsgTx) (int64, error) {
 	walletName := viper.GetString("wallet_name")
-	feeRateAdjustment := viper.GetInt64("fee_rate_adjustment")
 	result, err := comms.GetEstimateFee(walletName)
 	if err != nil {
 		fmt.Println("Error getting fee rate : ", err)
@@ -502,10 +501,8 @@ func GetFeeRateFromBtcNode(tx *wire.MsgTx) (int64, error) {
 
 	feeRateInBtc := result.Result.Feerate
 
-	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", feeRateInBtc)
-	feeRate := BtcToSats(feeRateInBtc) + feeRateAdjustment
-	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
-	return feeRate, nil
+	fmt.Printf("Estimated fee rate: %f BTC", feeRateInBtc)
+	return feeRateInBtc, nil
 
 }
 
