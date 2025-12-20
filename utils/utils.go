@@ -491,7 +491,7 @@ func DecodeBtcScript(script string) string {
 	return decodedScript
 }
 
-func GetFeeRateFromBtcNode(tx *wire.MsgTx) (int64, error) {
+func GetFeeRateFromBtcNode(tx *wire.MsgTx) (float64, error) {
 	walletName := viper.GetString("wallet_name")
 	result, err := comms.GetEstimateFee(walletName)
 	if err != nil {

@@ -380,7 +380,7 @@ func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	return response.Result, nil
 }
 
-func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, feeRate int64) (string, error) {
+func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, feeRate float64) (string, error) {
 
 	subtract := make([]int, 0, len(outputs))
 	for i := range outputs {
@@ -426,7 +426,7 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 	return response.Result, nil
 }
 
-func FundRawTx(txHex string, feeRate int64, outputs []TxOutput, wallet string) (string, error) {
+func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string) (string, error) {
 	// Build [0, 1, 2, ...] for all existing outputs in the raw tx (before change is added)
 	subtract := make([]int, 0, len(outputs))
 	for i := range outputs {
