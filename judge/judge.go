@@ -621,7 +621,7 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	// 	return
 	// }
 
-	refundTxHex := hex.EncodeToString([]byte("placeholder_refund_tx"))
+	refundTxHex := sweepTxs[0].Tx
 
 	cosmos := comms.GetCosmosClient()
 	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveId), uint64(roundId+1), refundTxHex, judgeAddr)
@@ -660,7 +660,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 		sweepTxs := comms.GetUnsignedSweepTx(uint64(resId), uint64(roundId+1))
 		if sweepTxs.Code > 0 {
 			fmt.Println("refund : no unsigned sweep tx found : ", resId, "   ", uint64(roundId+1))
-			fmt.Println("finishing refund process")
+			fmt.Println("finishiing signed sweep process")
 			continue
 		}
 		reserve = r
@@ -823,7 +823,7 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 
 	addrs := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId))
 	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
-		fmt.Println("address not found in DB")
+		fmt.Println("address not found in DB (proposed)")
 		return
 	}
 

@@ -187,9 +187,12 @@ func startTransactionSigner(accountName string, dbconn *sql.DB, signerAddr strin
 	address.RegisterAddressOnSigners(dbconn)
 	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", dbconn, signerAddr, valAddr, WsHub, nil)
 	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", dbconn, signerAddr, valAddr, WsHub, nil)
-	eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_signers", dbconn, signerAddr, valAddr, WsHub, nil)
+	validator := viper.GetBool("validator")
+	if validator == false {
+		eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_signers", dbconn, signerAddr, valAddr, WsHub, nil)
+	}
 
-	fmt.Println("finishing bridge")
+	fmt.Println("finishing transaction signer")
 }
 
 func startJudge(accountName string, dbconn *sql.DB, judgeAddr string, valAddr string, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
