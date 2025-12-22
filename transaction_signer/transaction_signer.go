@@ -17,7 +17,7 @@ import (
 func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Sweep Tx Signer")
 	wallet := viper.GetString("wallet_name")
-	btcPubKey := viper.GetString("btc_xpublic_key")
+	btcPubKey := viper.GetString("btc_public_key")
 	SweepTxs := comms.GetAllUnsignedSweepTx()
 
 	for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
@@ -117,7 +117,7 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Refund Tx Signer")
 	// wallet := viper.GetString("wallet_name")
-	btcPubKey := viper.GetString("btc_xpublic_key")
+	btcPubKey := viper.GetString("btc_public_key")
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
 	for _, tx := range refundTxs.UnsignedTxRefundMsgs {
