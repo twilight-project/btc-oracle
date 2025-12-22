@@ -37,7 +37,8 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		// need to decide if this needs to be enabled
 		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 		fmt.Println("INFO : No funds in address : ", sweepAddress, " generating new address : ")
-		db.MarkAddressSignedRefund(dbconn, sweepAddress)
+		// db.MarkAddressSignedRefund(dbconn, sweepAddress)
+		db.MarkAddressSignedRefund(dbconn)
 		db.MarkAddressSignedSweep(dbconn, sweepAddress)
 		db.MarkAddressArchived(dbconn, sweepAddress)
 		return "", "", "", 0, nil
