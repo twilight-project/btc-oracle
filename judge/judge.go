@@ -631,7 +631,6 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 }
 
 func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
-	// sleep for a minute
 	time.Sleep(2 * time.Minute)
 	fmt.Println("Process signed sweep started")
 
@@ -821,18 +820,18 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 
 	// signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveId), uint64(roundId+1), dbconn, judgeAddr)
 
-	addrs := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId))
-	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
-		fmt.Println("address not found in DB (proposed)")
-		return
-	}
+	// addrs := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId))
+	// if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
+	// 	fmt.Println("address not found in DB (proposed)")
+	// 	return
+	// }
 
-	addresses := db.QuerySweepAddress(dbconn, addrs.ProposeSweepAddressMsg.BtcAddress)
-	if len(addresses) <= 0 {
-		fmt.Println("address not found in DB")
-		return
-	}
-	newReserveAddress := addresses[0]
+	// addresses := db.QuerySweepAddress(dbconn, addrs.ProposeSweepAddressMsg.BtcAddress)
+	// if len(addresses) <= 0 {
+	// 	fmt.Println("address not found in DB")
+	// 	return
+	// }
+	// newReserveAddress := addresses[0]
 
 	signedRefundTx := []byte("placeholder_signed_refund_tx")
 	signedRefundTxHex := hex.EncodeToString(signedRefundTx)
@@ -846,7 +845,7 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 		RoundId:        uint64(roundId + 1),
 	}
 	comms.SendTransactionBroadcastRefundtx(accountName, cosmos, msg)
-	db.MarkAddressBroadcastedRefund(dbconn, newReserveAddress.Address)
+	db.MarkAddressBroadcastedRefund(dbconn)
 
 	// WsHub.broadcast <- signedRefundTx
 

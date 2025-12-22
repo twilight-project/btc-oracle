@@ -116,32 +116,32 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 
 func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Refund Tx Signer")
-	wallet := viper.GetString("wallet_name")
-	btcPubKey := "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
+	// wallet := viper.GetString("wallet_name")
+	btcPubKey := viper.GetString("btc_xpublic_key")
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
 	for _, tx := range refundTxs.UnsignedTxRefundMsgs {
-		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedRefundTx, wallet)
-		if err != nil {
-			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
-			continue
-		}
+		// decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedRefundTx, wallet)
+		// if err != nil {
+		// 	fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
+		// 	continue
+		// }
 
-		if len(decodedPsbt.Inputs) <= 0 {
-			fmt.Println("signing: no inputs")
-			continue
-		}
+		// if len(decodedPsbt.Inputs) <= 0 {
+		// 	fmt.Println("signing: no inputs")
+		// 	continue
+		// }
 
-		script := decodedPsbt.Inputs[0].WitnessScript.Hex
-		addresses := db.QueryUnsignedRefundAddressByScript(dbconn, script)
-		if len(addresses) <= 0 {
-			continue
-		}
-		reserveAddress := addresses[0]
+		// script := decodedPsbt.Inputs[0].WitnessScript.Hex
+		// addresses := db.QueryUnsignedRefundAddressByScript(dbconn, script)
+		// if len(addresses) <= 0 {
+		// 	continue
+		// }
+		// reserveAddress := addresses[0]
 
-		if reserveAddress.Signed_refund {
-			continue
-		}
+		// if reserveAddress.Signed_refund {
+		// 	continue
+		// }
 		// signatures, err := comms.SignPsbt(tx.BtcUnsignedRefundTx, wallet)
 		// if err != nil {
 		// 	fmt.Println("error signing psbt : inside processSweepTx : ", err)
@@ -163,7 +163,7 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 
 		comms.SendTransactionSignRefund(accountName, cosmos, msg)
 
-		db.MarkAddressSignedRefund(dbconn, reserveAddress.Address)
+		db.MarkAddressSignedRefund(dbconn)
 	}
 
 	fmt.Println("finishing refund tx signer")

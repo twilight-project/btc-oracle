@@ -179,11 +179,18 @@ func MarkAddressBroadcastedSweep(dbconn *sql.DB, address string) {
 	}
 }
 
-func MarkAddressBroadcastedRefund(dbconn *sql.DB, address string) {
-	_, err := dbconn.Exec("update address set broadcast_refund = $1 where address = $2",
-		true,
-		address,
-	)
+// func MarkAddressBroadcastedRefund(dbconn *sql.DB, address string) {
+// 	_, err := dbconn.Exec("update address set broadcast_refund = $1 where address = $2",
+// 		true,
+// 		address,
+// 	)
+// 	if err != nil {
+// 		fmt.Println("An error occured while mark sweep address signed query: ", err)
+// 	}
+// }
+
+func MarkAddressBroadcastedRefund(dbconn *sql.DB) {
+	_, err := dbconn.Exec("update address set broadcast_refund = true")
 	if err != nil {
 		fmt.Println("An error occured while mark sweep address signed query: ", err)
 	}
@@ -209,15 +216,22 @@ func UpdateAddressUnlockHeight(dbconn *sql.DB, address string, height int64) {
 	}
 }
 
-func MarkAddressSignedRefund(dbconn *sql.DB, address string) {
-	_, err := dbconn.Exec("update address set signed_refund = $1 where address = $2",
-		true,
-		address,
-	)
+func MarkAddressSignedRefund(dbconn *sql.DB) {
+	_, err := dbconn.Exec("update address set signed_refund = true")
 	if err != nil {
 		fmt.Println("An error occured while mark sweep address signed query: ", err)
 	}
 }
+
+// func MarkAddressSignedRefund(dbconn *sql.DB, address string) {
+// 	_, err := dbconn.Exec("update address set signed_refund = $1 where address = $2",
+// 		true,
+// 		address,
+// 	)
+// 	if err != nil {
+// 		fmt.Println("An error occured while mark sweep address signed query: ", err)
+// 	}
+// }
 
 func QuerySweepAddressesByHeight(dbconn *sql.DB, height uint64, owned bool) []btcOracleTypes.SweepAddress {
 	// fmt.Println("getting address for height: ", height)
