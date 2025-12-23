@@ -157,7 +157,7 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 			ReserveId:       uint64(reserveId),
 			RoundId:         uint64(roundId),
 			SignerPublicKey: btcPubKey,
-			RefundSignature: []string{"junkSignature"},
+			RefundSignature: []string{"3045022100a6fbb0b1a49b65789e2c33a76c12488f66e12edf24a6ddacbe6a4e4e44f4d79f02205ad4c7e0bb27ae984e7f2cd9d41423f68b2a0c8aaee0f1c409bdd7e3f67d3c7d"},
 			SignerAddress:   signerAddr,
 		}
 
