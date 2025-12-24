@@ -367,7 +367,6 @@ func GetNewAddress(wallet string) (string, error) {
 func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	data := []interface{}{psbt}
 	result, _ := SendRPC("decodepsbt", data, wallet)
-	fmt.Println("result Decode Psbt: ", string(result))
 	var response JSONRPCResponsePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {
@@ -457,9 +456,6 @@ func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string)
 
 func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 	data := []interface{}{psbtStr, true, "ALL|ANYONECANPAY"}
-
-	fmt.Println("data: ", data)
-
 	result, _ := SendRPC("walletprocesspsbt", data, wallet)
 	fmt.Println("result Sign PSBT: ", string(result))
 	var response RPCResponseCreatePsbt

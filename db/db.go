@@ -665,7 +665,7 @@ func CheckIfAddressIsProposed(dbconn *sql.DB, roundID int64, reserveId uint64) b
 }
 
 func InsertSignedSweeptx(dbconn *sql.DB, tx string, unlockHeight int64) {
-	_, err := dbconn.Exec("INSERT into signed_tx VALUES ($1, $2,)",
+	_, err := dbconn.Exec("INSERT into signed_tx VALUES ($1, $2)",
 		tx,
 		unlockHeight,
 	)

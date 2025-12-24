@@ -243,7 +243,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		}
 
 		script, _ := hex.DecodeString(currentReserveScript)
-		preimage := currentReserveAddress.Preimage
+		// preimage := currentReserveAddress.Preimage
 
 		// remove after watchtower is done
 		txHex := comms.GetUnsignedSweepTx(reserveId, roundId).UnsignedTxSweepMsg.BtcUnsignedSweepTx
@@ -256,17 +256,17 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			return nil
 		}
 		currentReserveScript = psbtStruct.Inputs[0].WitnessScript.Asm
-		signedPsbt, err := comms.SignPsbt(psbt, wallet)
-		if err != nil {
-			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
-			return nil
-		}
+		// signedPsbt, err := comms.SignPsbt(psbt, wallet)
+		// if err != nil {
+		// 	fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
+		// 	return nil
+		// }
 
-		if len(signedPsbt) <= 0 {
-			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
-			return nil
-		}
-		watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
+		// if len(signedPsbt) <= 0 {
+		// 	fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
+		// 	return nil
+		// }
+		// watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
 
 		//////////////
 		totalInputs := len(sweepTx.TxIn)
@@ -280,10 +280,10 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			}
 
 			witness := wire.TxWitness{}
-			witness = append(witness, watchtowerSig)
+			// witness = append(witness, watchtowerSig)
 			witness = append(witness, dummy)
-			witness = append(witness, preimage)
-			witness = append(witness, dummy)
+			// witness = append(witness, preimage)
+			// witness = append(witness, dummy)
 			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
 			}
@@ -303,14 +303,14 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		}
 		signedSweepTx := hex.EncodeToString(signedTx.Bytes())
 
-		walletName := viper.GetString("judge_btc_wallet_name")
-		sweepTx, err := comms.SignRawTransaction(signedSweepTx, walletName)
-		if err != nil {
-			fmt.Println("error in signing fee utxo : ", err)
-			return nil
-		}
+		// walletName := viper.GetString("judge_btc_wallet_name")
+		// sweepTx, err := comms.SignRawTransaction(signedSweepTx, walletName)
+		// if err != nil {
+		// 	fmt.Println("error in signing fee utxo : ", err)
+		// 	return nil
+		// }
 
-		result, err := hex.DecodeString(sweepTx)
+		result, err := hex.DecodeString(signedSweepTx)
 		if err != nil {
 			fmt.Println("error in signing fee utxo : ", err)
 			return nil
