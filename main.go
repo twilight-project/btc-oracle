@@ -150,6 +150,7 @@ func startBtcTxBroadcaster(dbconn *sql.DB) {
 				fmt.Println("error creating tx from hex : ", err)
 				continue
 			}
+			fmt.Println("about to broadcast transaction")
 			utils.BroadcastBtcTransaction(tx)
 			db.DeleteSignedSweeptx(dbconn, height)
 		}

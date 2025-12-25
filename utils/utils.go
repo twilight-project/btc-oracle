@@ -352,8 +352,7 @@ func GetCurrentFragment(judgeAddr string) (btcOracleTypes.Fragment, error) {
 // Note that currently the checks work on the assumption that each Judge has only one fragment and each Signer has only one address associated with BTC wallet address
 // The function should be updated to handle matching public keys used in the BTC sweep script
 func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignSweep {
-	fmt.Println(sweepSignatures.SignSweepMsg)
-	fmt.Println(pubkeys)
+	fmt.Println("Public Keys: ", pubkeys)
 	// FIltering is not required in the new design
 	// filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
 	// for _, sweepSig := range sweepSignatures.SignSweepMsg {
@@ -501,7 +500,7 @@ func GetFeeRateFromBtcNode(tx *wire.MsgTx) (float64, error) {
 
 	feeRateInBtc := result.Result.Feerate
 
-	fmt.Printf("Estimated fee rate: %f BTC", feeRateInBtc)
+	fmt.Println("Estimated fee rate: %f BTC", feeRateInBtc)
 	return feeRateInBtc, nil
 
 }
@@ -652,7 +651,7 @@ func GetMinSignFromScript(script string) int {
 		return 0
 	}
 
-	fmt.Println(m)
+	fmt.Println("Minimum Signature Required : ", m)
 	return m
 }
 
