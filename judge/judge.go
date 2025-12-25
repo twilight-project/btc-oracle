@@ -30,8 +30,6 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	wallet := viper.GetString("wallet_name")
 	fmt.Println(withdrawRequests)
 	fmt.Println("sweep address : ", newSweepAddress)
-	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
-	sweepPreblock, _ := strconv.Atoi(number)
 
 	if len(utxos) <= 0 {
 		// need to decide if this needs to be enabled
