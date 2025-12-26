@@ -519,7 +519,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 		}
 
 		withdrawRequests := comms.GetWithdrawSnapshot(uint64(reserveId), uint64(roundId+1)).WithdrawRequests
-		sweepTxHex, psbt, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(currentSweepAddress.unlock_height), utxos, dbconn)
+		sweepTxHex, psbt, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(currentSweepAddress.Unlock_height), utxos, dbconn)
 		if err != nil {
 			fmt.Println("Error in generating a Sweep transaction: ", err)
 			fmt.Println("finishing sweep process: error in generating a Sweep transaction")
