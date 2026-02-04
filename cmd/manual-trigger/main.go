@@ -83,12 +83,19 @@ func main() {
 }
 
 func initialize() (string, string, *sql.DB) {
+	fmt.Println("[DEBUG] Loading config file...")
 	utils.InitConfigFile()
+	fmt.Println("[DEBUG] Config loaded. Getting fragments...")
 	comms.GetAllFragments()
+	fmt.Println("[DEBUG] Fragments retrieved. Initializing DB...")
 	dbconn := db.InitDB()
+	fmt.Println("[DEBUG] DB initialized. Reading config values...")
 
 	signerAddr := viper.GetString("own_address")
 	accountName := viper.GetString("accountName")
+	walletName := viper.GetString("wallet_name")
+
+	fmt.Printf("[DEBUG] accountName: %s, signerAddr: %s, wallet: %s\n", accountName, signerAddr, walletName)
 
 	// Validate running mode (warn if not signer)
 	runningMode := viper.GetString("running_mode")
@@ -96,7 +103,9 @@ func initialize() (string, string, *sql.DB) {
 		fmt.Printf("Warning: running_mode is '%s', expected 'signer'. Proceeding anyway.\n", runningMode)
 	}
 
-	utils.LoadBtcWallet(viper.GetString("wallet_name"))
+	fmt.Printf("[DEBUG] Loading BTC wallet: %s ...\n", walletName)
+	utils.LoadBtcWallet(walletName)
+	fmt.Println("[DEBUG] BTC wallet loaded.")
 
 	if verbose {
 		fmt.Printf("Initialized with:\n")
