@@ -406,7 +406,7 @@ func GetUnsignedSweepTx(reserveId uint64, roundId uint64) btcOracleTypes.Unsigne
 
 func GetAllUnsignedSweepTx() btcOracleTypes.UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	path := "/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=5"
+	path := "/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=100"
 	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		log.Fatalln(err)
@@ -450,7 +450,7 @@ func GetUnsignedRefundTx(reserveId int64, roundId int64) btcOracleTypes.Unsigned
 
 func GetAllUnsignedRefundTx() btcOracleTypes.UnsignedTxRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=5")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=100")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -697,7 +697,7 @@ func GetBroadCastedRefundTx(reserveId uint64, roundId uint64) btcOracleTypes.Bro
 
 func GetProposedAddresses() btcOracleTypes.ProposeSweepAddressMsgResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/25")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/100")
 	if err != nil {
 		fmt.Println("error getting reserve addresses : ", err)
 	}
