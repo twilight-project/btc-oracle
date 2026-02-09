@@ -110,7 +110,7 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 	return address, addressInfo.Hex
 }
 
-func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, judgeAddr string, dbconn *sql.DB) {
+func ProposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, judgeAddr string, dbconn *sql.DB) {
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	wallet := viper.GetString("wallet_name")
 	unlockingTime, _ := strconv.Atoi(number)
@@ -193,7 +193,7 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 				break
 			}
 			fmt.Println("Sweep Address found, proposing address for reserve and round : ", reserveId, roundId+1)
-			proposeAddress(accountName, uint64(reserveId), uint64(roundId+1), reserve.ReserveAddress, judgeAddr, dbconn)
+			ProposeAddress(accountName, uint64(reserveId), uint64(roundId+1), reserve.ReserveAddress, judgeAddr, dbconn)
 			break
 		}
 
