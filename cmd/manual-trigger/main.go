@@ -13,6 +13,7 @@ import (
 	"github.com/twilight-project/forkoracle-go/address"
 	"github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
+	"github.com/twilight-project/forkoracle-go/judge"
 	"github.com/twilight-project/forkoracle-go/transaction_signer"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
@@ -22,6 +23,7 @@ const (
 	HandlerSigningRefund  = "signing_refund"
 	HandlerSigningSweep   = "signing_sweep"
 	HandlerProposeAddress = "propose_address"
+	HandlerProcessSweep   = "process_sweep"
 )
 
 var (
@@ -59,10 +61,11 @@ func main() {
 		HandlerSigningRefund:  true,
 		HandlerSigningSweep:   true,
 		HandlerProposeAddress: true,
+		HandlerProcessSweep:   true,
 	}
 
 	if handler != "" && !validHandlers[handler] {
-		fmt.Printf("Error: Invalid handler '%s'. Must be one of: signing_refund, signing_sweep, propose_address\n", handler)
+		fmt.Printf("Error: Invalid handler '%s'. Must be one of: signing_refund, signing_sweep, propose_address, process_sweep\n", handler)
 		os.Exit(1)
 	}
 
@@ -70,9 +73,15 @@ func main() {
 	accountName, oracleAddr, dbconn := initialize()
 	defer dbconn.Close()
 
-	// Route based on handler type
+	// Route based on handler type - judge role handlers
 	if handler == HandlerProposeAddress {
 		runProposeAddress(accountName, oracleAddr, dbconn)
+		return
+	}
+	if handler == HandlerProcessSweep {
+		fmt.Println("Executing handler: process_sweep")
+		judge.ProcessSweep(accountName, dbconn, oracleAddr)
+		fmt.Println("Handler process_sweep completed")
 		return
 	}
 
@@ -232,11 +241,13 @@ func printUsage() {
 	fmt.Println("  signing_refund   - Process unsigned refund transactions (signer role)")
 	fmt.Println("  signing_sweep    - Process unsigned sweep transactions (signer role)")
 	fmt.Println("  propose_address  - Propose a new reserve address (judge role, requires --reserve-id)")
+	fmt.Println("  process_sweep    - Process sweep transactions (judge role)")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  manual-trigger --handler=signing_refund")
 	fmt.Println("  manual-trigger --handler=signing_sweep --verbose")
 	fmt.Println("  manual-trigger --handler=propose_address --reserve-id=1")
+	fmt.Println("  manual-trigger --handler=process_sweep")
 	fmt.Println("  manual-trigger --all")
 	fmt.Println()
 	fmt.Println("Options:")
