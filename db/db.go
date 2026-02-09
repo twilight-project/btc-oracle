@@ -51,6 +51,7 @@ func QueryNotification(dbconn *sql.DB) []btcOracleTypes.WatchtowerNotification {
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
 		fmt.Println("An error occured while query Notification query: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -81,6 +82,7 @@ func QueryUtxo(dbconn *sql.DB, address string) []btcOracleTypes.Utxo {
 	DB_reader, err := dbconn.Query("select txid, Receiving_vout, satoshis from notification where receiving = $1", address)
 	if err != nil {
 		fmt.Println("An error occured while query utxo: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -105,6 +107,7 @@ func QueryAmount(dbconn *sql.DB, receiving_vout uint32, receiving_txid string) u
 	DB_reader, err := dbconn.Query("select satoshis from notification where receiving_vout = $1 and txid = $2", receiving_vout, receiving_txid)
 	if err != nil {
 		fmt.Println("An error occured query amount query: ", err)
+		return 0
 	}
 
 	defer DB_reader.Close()
@@ -241,6 +244,7 @@ func QuerySweepAddressesByHeight(dbconn *sql.DB, height uint64, owned bool) []bt
 
 	if err != nil {
 		fmt.Println("An error occured while query address by height: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -269,6 +273,7 @@ func QueryAllSweepAddresses(dbconn *sql.DB, owned bool, archived bool) []btcOrac
 	DB_reader, err := dbconn.Query("select * from address where owned = $1 and archived = $2", owned, archived)
 	if err != nil {
 		fmt.Println("An error occured while query address by height: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -302,6 +307,7 @@ func QuerySweepAddressesOrderByHeight(dbconn *sql.DB, limit int) []btcOracleType
 	DB_reader, err := dbconn.Query("SELECT * FROM address WHERE archived = false ORDER BY unlock_height DESC LIMIT $1", limit)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -335,6 +341,7 @@ func QuerySweepAddress(dbconn *sql.DB, addr string) []btcOracleTypes.SweepAddres
 	DB_reader, err := dbconn.Query("select * from address where address = $1", addr)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -394,6 +401,7 @@ func QueryUnsignedSweepAddressByScript(dbconn *sql.DB, script string) []btcOracl
 	DB_reader, err := dbconn.Query("select * from address where script = $1", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -427,6 +435,7 @@ func QueryUnsignedRefundAddressByScript(dbconn *sql.DB, script string) []btcOrac
 	DB_reader, err := dbconn.Query("select * from address where script = $1 and signed_refund = false and archived = false", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -460,6 +469,7 @@ func QuerySweepAddressScript(dbconn *sql.DB, address string) []byte {
 	DB_reader, err := dbconn.Query("select script from address where address = $1", address)
 	if err != nil {
 		fmt.Println("An error occured while query script sweep address: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -555,6 +565,7 @@ func QueryAllAddressOnly(dbconn *sql.DB) []string {
 	DB_reader, err := dbconn.Query("select address from address;")
 	if err != nil {
 		fmt.Println("An error occured while query address: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
@@ -590,6 +601,7 @@ func QueryWatchedTransactions(dbconn *sql.DB) []btcOracleTypes.WatchedTx {
 	DB_reader, err := dbconn.Query("select * from transaction where watched = true;")
 	if err != nil {
 		fmt.Println("An error occured while query transactions: ", err)
+		return nil
 	}
 
 	defer DB_reader.Close()
