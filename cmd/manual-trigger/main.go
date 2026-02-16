@@ -17,13 +17,15 @@ import (
 	"github.com/twilight-project/forkoracle-go/transaction_signer"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
+	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
 const (
-	HandlerSigningRefund  = "signing_refund"
-	HandlerSigningSweep   = "signing_sweep"
-	HandlerProposeAddress = "propose_address"
-	HandlerProcessSweep   = "process_sweep"
+	HandlerSigningRefund       = "signing_refund"
+	HandlerSigningSweep        = "signing_sweep"
+	HandlerProposeAddress      = "propose_address"
+	HandlerProcessSweep        = "process_sweep"
+	HandlerProcessSweepDirect  = "process_sweep_direct"
 )
 
 var (
@@ -32,6 +34,7 @@ var (
 	verbose   bool
 	showHelp  bool
 	reserveId int
+	roundId   int
 )
 
 func init() {
@@ -39,7 +42,8 @@ func init() {
 	flag.BoolVar(&runAll, "all", false, "Run all signer handlers (signing_refund then signing_sweep)")
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&showHelp, "help", false, "Show help message")
-	flag.IntVar(&reserveId, "reserve-id", 0, "Reserve ID (required for propose_address handler)")
+	flag.IntVar(&reserveId, "reserve-id", 0, "Reserve ID (required for propose_address and process_sweep_direct)")
+	flag.IntVar(&roundId, "round-id", 0, "Round ID (required for process_sweep_direct)")
 }
 
 func main() {
@@ -58,14 +62,15 @@ func main() {
 	}
 
 	validHandlers := map[string]bool{
-		HandlerSigningRefund:  true,
-		HandlerSigningSweep:   true,
-		HandlerProposeAddress: true,
-		HandlerProcessSweep:   true,
+		HandlerSigningRefund:      true,
+		HandlerSigningSweep:       true,
+		HandlerProposeAddress:     true,
+		HandlerProcessSweep:       true,
+		HandlerProcessSweepDirect: true,
 	}
 
 	if handler != "" && !validHandlers[handler] {
-		fmt.Printf("Error: Invalid handler '%s'. Must be one of: signing_refund, signing_sweep, propose_address, process_sweep\n", handler)
+		fmt.Printf("Error: Invalid handler '%s'. Must be one of: signing_refund, signing_sweep, propose_address, process_sweep, process_sweep_direct\n", handler)
 		os.Exit(1)
 	}
 
@@ -79,9 +84,13 @@ func main() {
 		return
 	}
 	if handler == HandlerProcessSweep {
-		fmt.Println("Executing handler: process_sweep")
+		fmt.Println("[MANUAL-TRIGGER] Executing handler: process_sweep")
 		judge.ProcessSweep(accountName, dbconn, oracleAddr)
-		fmt.Println("Handler process_sweep completed")
+		fmt.Println("[MANUAL-TRIGGER] Handler process_sweep completed")
+		return
+	}
+	if handler == HandlerProcessSweepDirect {
+		runProcessSweepDirect(accountName, oracleAddr, dbconn)
 		return
 	}
 
@@ -230,6 +239,107 @@ func runHandler(handlerName string, accountName string, dbconn *sql.DB, signerAd
 	fmt.Printf("Handler %s completed\n", handlerName)
 }
 
+func runProcessSweepDirect(accountName string, judgeAddr string, dbconn *sql.DB) {
+	if reserveId <= 0 {
+		fmt.Println("Error: --reserve-id is required for process_sweep_direct handler")
+		os.Exit(1)
+	}
+	if roundId <= 0 {
+		fmt.Println("Error: --round-id is required for process_sweep_direct handler")
+		os.Exit(1)
+	}
+
+	fmt.Printf("[MANUAL-TRIGGER] process_sweep_direct: reserve-id=%d, round-id=%d\n", reserveId, roundId)
+
+	// Step 1: Fetch reserve from chain
+	fmt.Println("[DEBUG] Fetching BTC reserves from chain...")
+	btcReserves := comms.GetBtcReserves()
+	var reserve btcOracleTypes.BtcReserve
+	found := false
+	for _, r := range btcReserves.BtcReserves {
+		rid, _ := strconv.Atoi(r.ReserveId)
+		if rid == reserveId {
+			reserve = r
+			found = true
+			break
+		}
+	}
+	if !found {
+		fmt.Printf("[ERROR] Reserve with ID %d not found on chain\n", reserveId)
+		os.Exit(1)
+	}
+	fmt.Printf("[DEBUG] Found reserve: ID=%s, Address=%s, RoundId=%s\n", reserve.ReserveId, reserve.ReserveAddress, reserve.RoundId)
+
+	// Step 2: Query sweep address from DB (no height restriction)
+	fmt.Printf("[DEBUG] Querying sweep address from DB for: %s\n", reserve.ReserveAddress)
+	addresses := db.QuerySweepAddress(dbconn, reserve.ReserveAddress)
+	if len(addresses) <= 0 {
+		fmt.Printf("[ERROR] No sweep address found in DB for: %s\n", reserve.ReserveAddress)
+		os.Exit(1)
+	}
+	currentSweepAddress := addresses[0]
+	fmt.Printf("[DEBUG] Sweep address found: %s, unlock_height=%d\n", currentSweepAddress.Address, currentSweepAddress.Unlock_height)
+
+	// Step 3: Query UTXOs
+	fmt.Printf("[DEBUG] Querying UTXOs for address: %s\n", currentSweepAddress.Address)
+	utxos := db.QueryUtxo(dbconn, currentSweepAddress.Address)
+	if len(utxos) <= 0 {
+		fmt.Printf("[ERROR] No UTXOs found for address: %s\n", currentSweepAddress.Address)
+		os.Exit(1)
+	}
+	fmt.Printf("[DEBUG] Found %d UTXOs\n", len(utxos))
+	for i, u := range utxos {
+		fmt.Printf("[DEBUG]   UTXO[%d]: txid=%s, vout=%d, amount=%d\n", i, u.Txid, u.Vout, u.Amount)
+	}
+
+	// Step 4: Get proposed sweep address for next round
+	fmt.Printf("[DEBUG] Getting proposed sweep address for reserve=%d, round=%d\n", reserveId, roundId)
+	sweepAddressResp := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId))
+	if sweepAddressResp.ProposeSweepAddressMsg.BtcAddress == "" {
+		fmt.Printf("[ERROR] No proposed sweep address found for reserve=%d, round=%d\n", reserveId, roundId)
+		os.Exit(1)
+	}
+	newSweepAddress := sweepAddressResp.ProposeSweepAddressMsg.BtcAddress
+	fmt.Printf("[DEBUG] New sweep address: %s\n", newSweepAddress)
+
+	// Step 5: Get withdraw requests
+	fmt.Printf("[DEBUG] Getting withdraw snapshot for reserve=%d, round=%d\n", reserveId, roundId)
+	withdrawRequests := comms.GetWithdrawSnapshot(uint64(reserveId), uint64(roundId)).WithdrawRequests
+	fmt.Printf("[DEBUG] Found %d withdraw requests\n", len(withdrawRequests))
+	for i, w := range withdrawRequests {
+		fmt.Printf("[DEBUG]   Withdraw[%d]: addr=%s, amount=%s\n", i, w.WithdrawAddress, w.WithdrawAmount)
+	}
+
+	// Step 6: Generate sweep tx
+	fmt.Println("[DEBUG] Generating sweep transaction...")
+	sweepTxHex, psbt, sweepTxId, totalAmount, err := judge.GenerateSweepTx(
+		currentSweepAddress.Address, newSweepAddress, accountName,
+		withdrawRequests, int64(currentSweepAddress.Unlock_height), utxos, dbconn,
+	)
+	if err != nil {
+		fmt.Printf("[ERROR] Failed to generate sweep tx: %v\n", err)
+		os.Exit(1)
+	}
+	if sweepTxHex == "" {
+		fmt.Println("[ERROR] No sweep tx generated (no funds in current address)")
+		os.Exit(1)
+	}
+	fmt.Printf("[DEBUG] Sweep tx generated: txId=%s, totalAmount=%d\n", sweepTxId, totalAmount)
+
+	// Step 7: Broadcast to chain
+	fmt.Println("[DEBUG] Broadcasting unsigned sweep tx to chain...")
+	cosmos := comms.GetCosmosClient()
+	msg := bridgetypes.NewMsgUnsignedTxSweep(sweepTxId, psbt, uint64(reserveId), uint64(roundId), judgeAddr)
+	comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
+	fmt.Println("[DEBUG] Broadcast complete")
+
+	// Step 8: Record in DB
+	fmt.Println("[DEBUG] Recording in DB...")
+	db.InsertUnSignedSweeptx(dbconn, sweepTxHex, int64(reserveId), int64(roundId))
+	db.MarkAddressArchived(dbconn, currentSweepAddress.Address)
+	fmt.Println("[MANUAL-TRIGGER] process_sweep_direct completed successfully")
+}
+
 func printUsage() {
 	fmt.Println("manual-trigger - Manually trigger btc-oracle event handlers")
 	fmt.Println()
@@ -242,12 +352,14 @@ func printUsage() {
 	fmt.Println("  signing_sweep    - Process unsigned sweep transactions (signer role)")
 	fmt.Println("  propose_address  - Propose a new reserve address (judge role, requires --reserve-id)")
 	fmt.Println("  process_sweep    - Process sweep transactions (judge role)")
+	fmt.Println("  process_sweep_direct - Process sweep for old blocks, bypasses height window (judge role, requires --reserve-id and --round-id)")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  manual-trigger --handler=signing_refund")
 	fmt.Println("  manual-trigger --handler=signing_sweep --verbose")
 	fmt.Println("  manual-trigger --handler=propose_address --reserve-id=1")
 	fmt.Println("  manual-trigger --handler=process_sweep")
+	fmt.Println("  manual-trigger --handler=process_sweep_direct --reserve-id=1 --round-id=5")
 	fmt.Println("  manual-trigger --all")
 	fmt.Println()
 	fmt.Println("Options:")
