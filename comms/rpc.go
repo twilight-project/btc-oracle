@@ -392,6 +392,9 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 			subtract = append(subtract, i)
 		}
 		options["subtractFeeFromOutputs"] = subtract
+	} else {
+		// When using judge wallet for fee, don't try to solve pre-selected sweep inputs
+		options["solve"] = false
 	}
 
 	data := []interface{}{inputs, outputs, locktime, options}
@@ -438,6 +441,9 @@ func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string,
 			subtract = append(subtract, i)
 		}
 		options["subtractFeeFromOutputs"] = subtract
+	} else {
+		// When using judge wallet for fee, don't try to solve pre-selected sweep inputs
+		options["solve"] = false
 	}
 
 	data := []interface{}{txHex, options}
