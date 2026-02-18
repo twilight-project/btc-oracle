@@ -26,15 +26,19 @@ const (
 	HandlerProposeAddress      = "propose_address"
 	HandlerProcessSweep        = "process_sweep"
 	HandlerProcessSweepDirect  = "process_sweep_direct"
+	HandlerSweepProposal       = "sweep_proposal"
 )
 
 var (
-	handler   string
-	runAll    bool
-	verbose   bool
-	showHelp  bool
-	reserveId int
-	roundId   int
+	handler        string
+	runAll         bool
+	verbose        bool
+	showHelp       bool
+	reserveId      int
+	roundId        int
+	newAddress     string
+	btcTxHash      string
+	btcBlockHeight int
 )
 
 func init() {
@@ -43,7 +47,10 @@ func init() {
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&showHelp, "help", false, "Show help message")
 	flag.IntVar(&reserveId, "reserve-id", 0, "Reserve ID (required for propose_address and process_sweep_direct)")
-	flag.IntVar(&roundId, "round-id", 0, "Round ID (required for process_sweep_direct)")
+	flag.IntVar(&roundId, "round-id", 0, "Round ID (required for process_sweep_direct, sweep_proposal)")
+	flag.StringVar(&newAddress, "new-address", "", "New reserve BTC address (required for sweep_proposal)")
+	flag.StringVar(&btcTxHash, "btc-tx-hash", "", "BTC transaction hash (required for sweep_proposal)")
+	flag.IntVar(&btcBlockHeight, "btc-block-height", 0, "BTC block height (required for sweep_proposal)")
 }
 
 func main() {
@@ -67,10 +74,11 @@ func main() {
 		HandlerProposeAddress:     true,
 		HandlerProcessSweep:       true,
 		HandlerProcessSweepDirect: true,
+		HandlerSweepProposal:      true,
 	}
 
 	if handler != "" && !validHandlers[handler] {
-		fmt.Printf("Error: Invalid handler '%s'. Must be one of: signing_refund, signing_sweep, propose_address, process_sweep, process_sweep_direct\n", handler)
+		fmt.Printf("Error: Invalid handler '%s'. Must be one of: signing_refund, signing_sweep, propose_address, process_sweep, process_sweep_direct, sweep_proposal\n", handler)
 		os.Exit(1)
 	}
 
@@ -91,6 +99,10 @@ func main() {
 	}
 	if handler == HandlerProcessSweepDirect {
 		runProcessSweepDirect(accountName, oracleAddr, dbconn)
+		return
+	}
+	if handler == HandlerSweepProposal {
+		runSweepProposal(accountName, oracleAddr)
 		return
 	}
 
@@ -340,6 +352,72 @@ func runProcessSweepDirect(accountName string, judgeAddr string, dbconn *sql.DB)
 	fmt.Println("[MANUAL-TRIGGER] process_sweep_direct completed successfully")
 }
 
+func runSweepProposal(accountName string, oracleAddr string) {
+	if reserveId <= 0 {
+		fmt.Println("Error: --reserve-id is required for sweep_proposal handler")
+		os.Exit(1)
+	}
+	if roundId <= 0 {
+		fmt.Println("Error: --round-id is required for sweep_proposal handler")
+		os.Exit(1)
+	}
+	if newAddress == "" {
+		fmt.Println("Error: --new-address is required for sweep_proposal handler")
+		os.Exit(1)
+	}
+	if btcTxHash == "" {
+		fmt.Println("Error: --btc-tx-hash is required for sweep_proposal handler")
+		os.Exit(1)
+	}
+	if btcBlockHeight <= 0 {
+		fmt.Println("Error: --btc-block-height is required for sweep_proposal handler")
+		os.Exit(1)
+	}
+
+	// Fetch reserve from chain to get judge address
+	fmt.Println("[DEBUG] Fetching BTC reserves from chain...")
+	btcReserves := comms.GetBtcReserves()
+	var reserve btcOracleTypes.BtcReserve
+	found := false
+	for _, r := range btcReserves.BtcReserves {
+		rid, _ := strconv.Atoi(r.ReserveId)
+		if rid == reserveId {
+			reserve = r
+			found = true
+			break
+		}
+	}
+	if !found {
+		fmt.Printf("[ERROR] Reserve with ID %d not found on chain\n", reserveId)
+		os.Exit(1)
+	}
+
+	fmt.Println("[MANUAL-TRIGGER] Sending sweep proposal message")
+	fmt.Printf("[DEBUG] ReserveId: %d\n", reserveId)
+	fmt.Printf("[DEBUG] NewReserveAddress: %s\n", newAddress)
+	fmt.Printf("[DEBUG] JudgeAddress: %s\n", reserve.JudgeAddress)
+	fmt.Printf("[DEBUG] BtcTxHash: %s\n", btcTxHash)
+	fmt.Printf("[DEBUG] UnlockHeight: %d\n", btcBlockHeight)
+	fmt.Printf("[DEBUG] RoundId: %d\n", roundId)
+	fmt.Printf("[DEBUG] OracleAddress: %s\n", oracleAddr)
+
+	cosmos := comms.GetCosmosClient()
+	msg := &bridgetypes.MsgSweepProposal{
+		ReserveId:             uint64(reserveId),
+		NewReserveAddress:     newAddress,
+		JudgeAddress:          reserve.JudgeAddress,
+		BtcRelayCapacityValue: 0,
+		BtcTxHash:             btcTxHash,
+		UnlockHeight:          uint64(btcBlockHeight),
+		RoundId:               uint64(roundId),
+		BtcBlockNumber:        uint64(btcBlockHeight),
+		OracleAddress:         oracleAddr,
+	}
+
+	comms.SendTransactionSweepProposal(accountName, cosmos, msg)
+	fmt.Println("[MANUAL-TRIGGER] Sweep proposal sent successfully")
+}
+
 func printUsage() {
 	fmt.Println("manual-trigger - Manually trigger btc-oracle event handlers")
 	fmt.Println()
@@ -353,6 +431,7 @@ func printUsage() {
 	fmt.Println("  propose_address  - Propose a new reserve address (judge role, requires --reserve-id)")
 	fmt.Println("  process_sweep    - Process sweep transactions (judge role)")
 	fmt.Println("  process_sweep_direct - Process sweep for old blocks, bypasses height window (judge role, requires --reserve-id and --round-id)")
+	fmt.Println("  sweep_proposal       - Send sweep proposal message (requires --reserve-id, --round-id, --new-address, --btc-tx-hash, --btc-block-height)")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  manual-trigger --handler=signing_refund")
@@ -360,6 +439,7 @@ func printUsage() {
 	fmt.Println("  manual-trigger --handler=propose_address --reserve-id=1")
 	fmt.Println("  manual-trigger --handler=process_sweep")
 	fmt.Println("  manual-trigger --handler=process_sweep_direct --reserve-id=1 --round-id=5")
+	fmt.Println("  manual-trigger --handler=sweep_proposal --reserve-id=1 --round-id=10 --new-address=bc1q... --btc-tx-hash=abc123... --btc-block-height=935821")
 	fmt.Println("  manual-trigger --all")
 	fmt.Println()
 	fmt.Println("Options:")
