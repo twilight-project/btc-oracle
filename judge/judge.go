@@ -107,9 +107,10 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 	}
 
 	// Add fee wallet change output (last output) — change goes back to same address
+	// Start with feeTotal; we'll adjust after estimating the fee
 	outputs = append(outputs, comms.TxOutput{feeChangeAddr: feeTotal})
-	feeOutputIdx := len(outputs) - 1
 
+	// Step 1: Build raw tx with feeTotal as change amount (to estimate fee rate)
 	hexTx, err := comms.CreateRawTx(inputs, outputs, locktime, wallet)
 	if err != nil {
 		fmt.Println("error in creating raw tx : ", err)
@@ -122,40 +123,71 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, 0, err
 	}
 
+	// Step 2: Get fee rate from estimatesmartfee (BTC/kB)
 	feeRate, err := utils.GetFeeRateFromBtcNode(sweepTx)
 	if err != nil {
 		fmt.Println("error in getting fee : ", err)
 		return "", "", "", 0, 0, err
 	}
 
-	sweepTxWithFeeHex, err := comms.FundRawTx(hexTx, feeRate, outputs, wallet, feeOutputIdx)
+	// Step 3: Estimate vsize and calculate fee
+	// P2WSH multisig inputs ~104 vbytes, P2WPKH inputs ~68 vbytes, outputs ~31 vbytes, overhead ~10 vbytes
+	estimatedVsize := 10 + (numSweepInputs * 104) + (len(selectedFeeUtxos) * 68) + (len(outputs) * 31)
+	fee := feeRate * float64(estimatedVsize) / 1000.0
+	fee = fee * 1.1 // 10% buffer for safety
+	fmt.Printf("Estimated fee: %.8f BTC (vsize: %d, rate: %.8f BTC/kB)\n", fee, estimatedVsize, feeRate)
+
+	feeChangeAmount := feeTotal - fee
+	if feeChangeAmount <= 0 {
+		return "", "", "", 0, 0, fmt.Errorf("fee (%.8f) exceeds fee wallet UTXO amount (%.8f)", fee, feeTotal)
+	}
+
+	// Step 4: Update fee change output with correct amount and rebuild raw tx
+	outputs[len(outputs)-1] = comms.TxOutput{feeChangeAddr: feeChangeAmount}
+
+	hexTx, err = comms.CreateRawTx(inputs, outputs, locktime, wallet)
 	if err != nil {
-		fmt.Println("error in funding raw tx : ", err)
+		fmt.Println("error in creating raw tx with fee : ", err)
 		return "", "", "", 0, 0, err
 	}
-	sweepTx, err = utils.CreateTxFromHex(sweepTxWithFeeHex)
+
+	sweepTx, err = utils.CreateTxFromHex(hexTx)
 	if err != nil {
 		fmt.Println("error decoding tx with fee : ", err)
 		return "", "", "", 0, 0, err
 	}
 
-	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet, feeRate, feeOutputIdx)
+	// Step 5: Create PSBT via converttopsbt + utxoupdatepsbt (skip walletcreatefundedpsbt)
+	psbtBase64, err := comms.ConvertToPsbt(hexTx, wallet)
 	if err != nil {
-		fmt.Println("error in creating psbt : ", err)
+		fmt.Println("error in converttopsbt : ", err)
 		return "", "", "", 0, 0, err
 	}
 
-	fmt.Println("transaction base64 psbt: ", p)
+	// Enrich PSBT with sweep address descriptor so signers can sign
+	addrInfo, err := comms.GetAddressInfo(sweepAddress, wallet)
+	if err != nil {
+		fmt.Println("error in getting address info : ", err)
+		return "", "", "", 0, 0, err
+	}
 
-	psbt, err := utils.Base64ToHex(p)
+	psbtBase64, err = comms.UtxoUpdatePsbt(psbtBase64, addrInfo.Desc, wallet)
+	if err != nil {
+		fmt.Println("error in utxoupdatepsbt : ", err)
+		return "", "", "", 0, 0, err
+	}
+
+	fmt.Println("transaction base64 psbt: ", psbtBase64)
+
+	psbt, err := utils.Base64ToHex(psbtBase64)
 	if err != nil {
 		fmt.Println("error in converting psbt to hex : ", err)
 		return "", "", "", 0, 0, err
 	}
 
 	fmt.Println("transaction hex psbt: ", psbt)
-	fmt.Println("transaction UnSigned Sweep: ", sweepTxWithFeeHex)
-	return sweepTxWithFeeHex, psbt, sweepTx.TxHash().String(), totalAmountTxIn, numSweepInputs, nil
+	fmt.Println("transaction UnSigned Sweep: ", hexTx)
+	return hexTx, psbt, sweepTx.TxHash().String(), totalAmountTxIn, numSweepInputs, nil
 }
 
 func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, string, error) {

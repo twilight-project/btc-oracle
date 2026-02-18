@@ -484,6 +484,25 @@ func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string,
 	return response.Result.Hex, nil
 }
 
+func ConvertToPsbt(txHex string, wallet string) (string, error) {
+	data := []interface{}{txHex}
+	result, err := SendRPC("converttopsbt", data, wallet)
+	if err != nil {
+		return "", err
+	}
+
+	var response JSONRPCResponse
+	if err := json.Unmarshal(result, &response); err != nil {
+		return "", err
+	}
+
+	if response.Error != nil {
+		return "", errors.New("error in converttopsbt")
+	}
+
+	return response.Result, nil
+}
+
 func ListUnspent(wallet string) ([]UnspentOutput, error) {
 	data := []interface{}{1} // min_conf = 1
 	result, err := SendRPC("listunspent", data, wallet)
