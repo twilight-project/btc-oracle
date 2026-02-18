@@ -142,7 +142,10 @@ func initialize() (string, string, *sql.DB) {
 
 	fmt.Printf("[DEBUG] Loading BTC wallet: %s ...\n", walletName)
 	utils.LoadBtcWallet(walletName)
-	fmt.Println("[DEBUG] BTC wallet loaded.")
+	feeWalletName := viper.GetString("fee_wallet_name")
+	fmt.Printf("[DEBUG] Loading fee wallet: %s ...\n", feeWalletName)
+	utils.LoadBtcWallet(feeWalletName)
+	fmt.Println("[DEBUG] BTC wallets loaded.")
 
 	if verbose {
 		fmt.Printf("Initialized with:\n")
@@ -324,7 +327,7 @@ func runProcessSweepDirect(accountName string, judgeAddr string, dbconn *sql.DB)
 
 	// Step 6: Generate sweep tx
 	fmt.Println("[DEBUG] Generating sweep transaction...")
-	sweepTxHex, psbt, sweepTxId, totalAmount, err := judge.GenerateSweepTx(
+	sweepTxHex, psbt, sweepTxId, totalAmount, _, err := judge.GenerateSweepTx(
 		currentSweepAddress.Address, newSweepAddress, accountName,
 		withdrawRequests, int64(currentSweepAddress.Unlock_height), utxos, dbconn,
 	)

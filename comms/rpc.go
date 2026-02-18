@@ -208,6 +208,23 @@ type RPCResponseSignPsbt struct {
 	ID    int         `json:"id"`
 }
 
+type UnspentOutput struct {
+	TxID          string  `json:"txid"`
+	Vout          int     `json:"vout"`
+	Address       string  `json:"address"`
+	Amount        float64 `json:"amount"`
+	Confirmations int     `json:"confirmations"`
+	Spendable     bool    `json:"spendable"`
+	Solvable      bool    `json:"solvable"`
+	Safe          bool    `json:"safe"`
+}
+
+type RPCResponseListUnspent struct {
+	Result []UnspentOutput `json:"result"`
+	Error  interface{}     `json:"error"`
+	ID     int             `json:"id"`
+}
+
 // structs for creating a transaction/psbt
 type TxInput struct {
 	Txid     string `json:"txid"`
@@ -379,11 +396,18 @@ func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	return response.Result, nil
 }
 
-func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, feeRate float64) (string, error) {
+func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, feeRate float64, feeOutputIdx int) (string, error) {
 
-	subtract := make([]int, 0, len(outputs))
-	for i := range outputs {
-		subtract = append(subtract, i)
+	var subtract []int
+	if feeOutputIdx >= 0 {
+		// Fee wallet pays: subtract fee only from the fee wallet output
+		subtract = []int{feeOutputIdx}
+	} else {
+		// Original behavior: subtract fee from all outputs
+		subtract = make([]int, 0, len(outputs))
+		for i := range outputs {
+			subtract = append(subtract, i)
+		}
 	}
 
 	// Options map for walletcreatefundedpsbt
@@ -425,11 +449,17 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 	return response.Result, nil
 }
 
-func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string) (string, error) {
-	// Build [0, 1, 2, ...] for all existing outputs in the raw tx (before change is added)
-	subtract := make([]int, 0, len(outputs))
-	for i := range outputs {
-		subtract = append(subtract, i)
+func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string, feeOutputIdx int) (string, error) {
+	var subtract []int
+	if feeOutputIdx >= 0 {
+		// Fee wallet pays: subtract fee only from the fee wallet output
+		subtract = []int{feeOutputIdx}
+	} else {
+		// Original behavior: subtract fee from all outputs
+		subtract = make([]int, 0, len(outputs))
+		for i := range outputs {
+			subtract = append(subtract, i)
+		}
 	}
 
 	options := map[string]interface{}{
@@ -452,6 +482,25 @@ func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string)
 	}
 
 	return response.Result.Hex, nil
+}
+
+func ListUnspent(wallet string) ([]UnspentOutput, error) {
+	data := []interface{}{1} // min_conf = 1
+	result, err := SendRPC("listunspent", data, wallet)
+	if err != nil {
+		return nil, err
+	}
+
+	var response RPCResponseListUnspent
+	if err := json.Unmarshal(result, &response); err != nil {
+		return nil, err
+	}
+
+	if response.Error != nil {
+		return nil, errors.New("error in listunspent")
+	}
+
+	return response.Result, nil
 }
 
 func SignPsbt(psbtStr string, wallet string) ([]string, error) {

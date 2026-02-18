@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"time"
 
@@ -25,21 +26,18 @@ import (
 
 func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 	accountName string, withdrawRequests []btcOracleTypes.WithdrawRequest,
-	unlockHeight int64, utxos []btcOracleTypes.Utxo, dbconn *sql.DB) (string, string, string, uint64, error) {
+	unlockHeight int64, utxos []btcOracleTypes.Utxo, dbconn *sql.DB) (string, string, string, uint64, int, error) {
 
 	wallet := viper.GetString("wallet_name")
 	fmt.Println(withdrawRequests)
 	fmt.Println("sweep address : ", newSweepAddress)
 
 	if len(utxos) <= 0 {
-		// need to decide if this needs to be enabled
-		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 		fmt.Println("INFO : No funds in address : ", sweepAddress, " generating new address : ")
-		// db.MarkAddressSignedRefund(dbconn, sweepAddress)
 		db.MarkAddressSignedRefund(dbconn)
 		db.MarkAddressSignedSweep(dbconn, sweepAddress)
 		db.MarkAddressArchived(dbconn, sweepAddress)
-		return "", "", "", 0, nil
+		return "", "", "", 0, 0, nil
 	}
 
 	var inputs []comms.TxInput
@@ -47,7 +45,7 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 	totalAmountTxIn := uint64(0)
 	totalAmountTxOut := uint64(0)
 
-	for _, u := range utxos { //ideally the height should be masked with 0x0000ffff
+	for _, u := range utxos {
 		inputs = append(inputs, comms.TxInput{Txid: u.Txid, Vout: int64(u.Vout), Sequence: int64(wire.MaxTxInSequenceNum - 10)})
 		totalAmountTxIn += u.Amount
 	}
@@ -56,7 +54,7 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 		a, err := strconv.Atoi(withdrawal.WithdrawAmount)
 		if err != nil {
 			fmt.Println("error while txout amount conversion : ", err)
-			return "", "", "", 0, err
+			return "", "", "", 0, 0, err
 		}
 		amount := utils.SatsToBtc(int64(a))
 		outputs = append(outputs, comms.TxOutput{withdrawal.WithdrawAddress: float64(amount)})
@@ -68,45 +66,83 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 	outputs = append([]comms.TxOutput{comms.TxOutput{newSweepAddress: float64(change)}}, outputs...)
 	locktime := uint32(unlockHeight)
 
+	// Record number of sweep inputs before adding fee inputs
+	numSweepInputs := len(inputs)
+
+	// Add fee wallet UTXOs
+	feeWallet := viper.GetString("fee_wallet_name")
+	feeUtxos, err := comms.ListUnspent(feeWallet)
+	if err != nil {
+		fmt.Println("error listing fee wallet UTXOs: ", err)
+		return "", "", "", 0, 0, err
+	}
+	if len(feeUtxos) == 0 {
+		return "", "", "", 0, 0, errors.New("no fee wallet UTXOs available")
+	}
+
+	// Sort by amount descending, pick until total >= 0.001 BTC
+	sort.Slice(feeUtxos, func(i, j int) bool { return feeUtxos[i].Amount > feeUtxos[j].Amount })
+	var selectedFeeUtxos []comms.UnspentOutput
+	feeTotal := 0.0
+	feeChangeAddr := ""
+	for _, u := range feeUtxos {
+		selectedFeeUtxos = append(selectedFeeUtxos, u)
+		feeTotal += u.Amount
+		if feeChangeAddr == "" {
+			feeChangeAddr = u.Address
+		}
+		if feeTotal >= 0.001 {
+			break
+		}
+	}
+	if feeTotal < 0.001 {
+		return "", "", "", 0, 0, fmt.Errorf("insufficient fee wallet balance: %.8f BTC (need >= 0.001)", feeTotal)
+	}
+
+	fmt.Printf("Fee wallet: selected %d UTXOs, total %.8f BTC, change addr: %s\n", len(selectedFeeUtxos), feeTotal, feeChangeAddr)
+
+	// Add each fee UTXO as input
+	for _, u := range selectedFeeUtxos {
+		inputs = append(inputs, comms.TxInput{Txid: u.TxID, Vout: int64(u.Vout), Sequence: int64(wire.MaxTxInSequenceNum - 10)})
+	}
+
+	// Add fee wallet change output (last output) — change goes back to same address
+	outputs = append(outputs, comms.TxOutput{feeChangeAddr: feeTotal})
+	feeOutputIdx := len(outputs) - 1
+
 	hexTx, err := comms.CreateRawTx(inputs, outputs, locktime, wallet)
 	if err != nil {
 		fmt.Println("error in creating raw tx : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 
 	sweepTx, err := utils.CreateTxFromHex(hexTx)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 
 	feeRate, err := utils.GetFeeRateFromBtcNode(sweepTx)
 	if err != nil {
 		fmt.Println("error in getting fee : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 
-	sweepTxWithFeeHex, err := comms.FundRawTx(hexTx, feeRate, outputs, wallet)
+	sweepTxWithFeeHex, err := comms.FundRawTx(hexTx, feeRate, outputs, wallet, feeOutputIdx)
 	if err != nil {
 		fmt.Println("error in funding raw tx : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 	sweepTx, err = utils.CreateTxFromHex(sweepTxWithFeeHex)
 	if err != nil {
 		fmt.Println("error decoding tx with fee : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 
-	// feeUtxo, err := utils.CreateFeeUtxo(fee)
-	// if err != nil {
-	// 	fmt.Println("error in creating fee utxo : ", err)
-	// 	return "", "", "", 0, err
-	// }
-
-	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet, feeRate)
+	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet, feeRate, feeOutputIdx)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 
 	fmt.Println("transaction base64 psbt: ", p)
@@ -114,12 +150,12 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 	psbt, err := utils.Base64ToHex(p)
 	if err != nil {
 		fmt.Println("error in converting psbt to hex : ", err)
-		return "", "", "", 0, err
+		return "", "", "", 0, 0, err
 	}
 
 	fmt.Println("transaction hex psbt: ", psbt)
 	fmt.Println("transaction UnSigned Sweep: ", sweepTxWithFeeHex)
-	return sweepTxWithFeeHex, psbt, sweepTx.TxHash().String(), totalAmountTxIn, nil
+	return sweepTxWithFeeHex, psbt, sweepTx.TxHash().String(), totalAmountTxIn, numSweepInputs, nil
 }
 
 func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, string, error) {
@@ -212,7 +248,6 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 }
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress btcOracleTypes.SweepAddress, judgeAddr string) []byte {
-	// wallet := viper.GetString("judge_btc_wallet_name")
 	currentReserveScript := string(currentReserveAddress.Script)
 	//encoded := hex.EncodeToString(currentReserveScript)
 	fmt.Println("currentReserveScript in GenerateSignedSweepTx : ", currentReserveScript)
@@ -267,10 +302,13 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		// watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
 
 		//////////////
-		totalInputs := len(sweepTx.TxIn)
+		// Signers only sign sweep inputs (not fee inputs), so signature count = sweep input count
+		numSweepInputs := len(filteredSweepSignatures[0].SweepSignature)
+		fmt.Printf("Total inputs: %d, Sweep inputs: %d, Fee inputs: %d\n", len(sweepTx.TxIn), numSweepInputs, len(sweepTx.TxIn)-numSweepInputs)
 
+		// Apply signer witnesses only to sweep inputs (not fee inputs)
 		dummy := []byte{}
-		for i := 0; i < totalInputs; i++ {
+		for i := 0; i < numSweepInputs; i++ {
 			dataSig := make([][]byte, 0)
 			for _, sig := range filteredSweepSignatures {
 				sig, _ := hex.DecodeString(sig.SweepSignature[i])
@@ -278,43 +316,38 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			}
 
 			witness := wire.TxWitness{}
-			// witness = append(witness, watchtowerSig)
 			witness = append(witness, dummy)
-			// witness = append(witness, preimage)
-			// witness = append(witness, dummy)
 			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
 			}
 
-			// buf := make([]byte, 8)
-			// binary.BigEndian.PutUint64(buf, uint64(currentReserveAddress.Unlock_height))
-
-			// witness = append(witness, buf)
 			witness = append(witness, script)
 			sweepTx.TxIn[i].Witness = witness
 		}
 
+		// Serialize tx with sweep witnesses applied
 		var signedTx bytes.Buffer
 		err := sweepTx.Serialize(&signedTx)
 		if err != nil {
 			fmt.Println("Error in serializing signed tx : ", err)
 			return nil
 		}
-		// signedSweepTx := hex.EncodeToString(signedTx.Bytes())
 
-		// walletName := viper.GetString("judge_btc_wallet_name")
-		// sweepTx, err := comms.SignRawTransaction(signedSweepTx, walletName)
-		// if err != nil {
-		// 	fmt.Println("error in signing fee utxo : ", err)
-		// 	return nil
-		// }
+		// Sign fee input(s) with the fee wallet
+		signedSweepTxHex := hex.EncodeToString(signedTx.Bytes())
+		feeWallet := viper.GetString("fee_wallet_name")
+		finalTxHex, err := comms.SignRawTransaction(signedSweepTxHex, feeWallet)
+		if err != nil {
+			fmt.Println("error signing fee input: ", err)
+			return nil
+		}
 
-		// result, err := hex.DecodeString(signedSweepTx)
-		// if err != nil {
-		// 	fmt.Println("error in signing fee utxo : ", err)
-		// 	return nil
-		// }
-		return signedTx.Bytes()
+		result, err := hex.DecodeString(finalTxHex)
+		if err != nil {
+			fmt.Println("error decoding final tx: ", err)
+			return nil
+		}
+		return result
 	}
 }
 
@@ -519,7 +552,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 		}
 
 		withdrawRequests := comms.GetWithdrawSnapshot(uint64(reserveId), uint64(roundId+1)).WithdrawRequests
-		sweepTxHex, psbt, sweepTxId, _, err := GenerateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(currentSweepAddress.Unlock_height), utxos, dbconn)
+		sweepTxHex, psbt, sweepTxId, _, _, err := GenerateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(currentSweepAddress.Unlock_height), utxos, dbconn)
 		if err != nil {
 			fmt.Println("Error in generating a Sweep transaction: ", err)
 			fmt.Println("finishing sweep process: error in generating a Sweep transaction")
