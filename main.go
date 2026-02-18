@@ -52,6 +52,7 @@ func initialize() (string, string, *sql.DB) {
 	// }
 
 	utils.LoadBtcWallet(viper.GetString("wallet_name"))
+	utils.LoadBtcWallet(viper.GetString("judge_btc_wallet_name"))
 
 	return valAddr, oracleAddr, dbconn
 }

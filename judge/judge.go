@@ -86,7 +86,9 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, err
 	}
 
-	sweepTxWithFeeHex, err := comms.FundRawTx(hexTx, feeRate, outputs, wallet)
+	// Use judge wallet to fund the fee (adds fee input + change output to judge wallet)
+	judgeWallet := viper.GetString("judge_btc_wallet_name")
+	sweepTxWithFeeHex, err := comms.FundRawTx(hexTx, feeRate, outputs, judgeWallet, false)
 	if err != nil {
 		fmt.Println("error in funding raw tx : ", err)
 		return "", "", "", 0, err
@@ -97,13 +99,7 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, err
 	}
 
-	// feeUtxo, err := utils.CreateFeeUtxo(fee)
-	// if err != nil {
-	// 	fmt.Println("error in creating fee utxo : ", err)
-	// 	return "", "", "", 0, err
-	// }
-
-	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet, feeRate)
+	p, err := comms.CreatePsbt(inputs, outputs, locktime, judgeWallet, feeRate, false)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
 		return "", "", "", 0, err
@@ -267,10 +263,12 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		// watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
 
 		//////////////
-		totalInputs := len(sweepTx.TxIn)
+		// Only construct witness for sweep inputs (not fee inputs added by judge wallet)
+		// Signers only sign sweep inputs, so their signature array length tells us the count
+		numSweepInputs := len(filteredSweepSignatures[0].SweepSignature)
 
 		dummy := []byte{}
-		for i := 0; i < totalInputs; i++ {
+		for i := 0; i < numSweepInputs; i++ {
 			dataSig := make([][]byte, 0)
 			for _, sig := range filteredSweepSignatures {
 				sig, _ := hex.DecodeString(sig.SweepSignature[i])
@@ -278,43 +276,37 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			}
 
 			witness := wire.TxWitness{}
-			// witness = append(witness, watchtowerSig)
 			witness = append(witness, dummy)
-			// witness = append(witness, preimage)
-			// witness = append(witness, dummy)
 			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
 			}
 
-			// buf := make([]byte, 8)
-			// binary.BigEndian.PutUint64(buf, uint64(currentReserveAddress.Unlock_height))
-
-			// witness = append(witness, buf)
 			witness = append(witness, script)
 			sweepTx.TxIn[i].Witness = witness
 		}
 
+		// Sign fee input(s) with judge wallet
 		var signedTx bytes.Buffer
 		err := sweepTx.Serialize(&signedTx)
 		if err != nil {
 			fmt.Println("Error in serializing signed tx : ", err)
 			return nil
 		}
-		// signedSweepTx := hex.EncodeToString(signedTx.Bytes())
 
-		// walletName := viper.GetString("judge_btc_wallet_name")
-		// sweepTx, err := comms.SignRawTransaction(signedSweepTx, walletName)
-		// if err != nil {
-		// 	fmt.Println("error in signing fee utxo : ", err)
-		// 	return nil
-		// }
+		signedSweepTxHex := hex.EncodeToString(signedTx.Bytes())
+		judgeWallet := viper.GetString("judge_btc_wallet_name")
+		finalTxHex, err := comms.SignRawTransaction(signedSweepTxHex, judgeWallet)
+		if err != nil {
+			fmt.Println("error signing fee input with judge wallet: ", err)
+			return nil
+		}
 
-		// result, err := hex.DecodeString(signedSweepTx)
-		// if err != nil {
-		// 	fmt.Println("error in signing fee utxo : ", err)
-		// 	return nil
-		// }
-		return signedTx.Bytes()
+		result, err := hex.DecodeString(finalTxHex)
+		if err != nil {
+			fmt.Println("error decoding signed tx hex: ", err)
+			return nil
+		}
+		return result
 	}
 }
 
