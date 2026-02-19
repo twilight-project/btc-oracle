@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -137,7 +138,7 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 	fee = fee * 1.1 // 10% buffer for safety
 	fmt.Printf("Estimated fee: %.8f BTC (vsize: %d, rate: %.8f BTC/kB)\n", fee, estimatedVsize, feeRate)
 
-	feeChangeAmount := feeTotal - fee
+	feeChangeAmount := math.Floor((feeTotal-fee)*1e8) / 1e8 // round down to satoshi precision
 	if feeChangeAmount <= 0 {
 		return "", "", "", 0, 0, fmt.Errorf("fee (%.8f) exceeds fee wallet UTXO amount (%.8f)", fee, feeTotal)
 	}
