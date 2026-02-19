@@ -131,12 +131,20 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, 0, err
 	}
 
-	// Step 3: Estimate vsize and calculate fee
-	// P2WSH multisig inputs ~104 vbytes, P2WPKH inputs ~68 vbytes, outputs ~31 vbytes, overhead ~10 vbytes
-	estimatedVsize := 10 + (numSweepInputs * 104) + (len(selectedFeeUtxos) * 68) + (len(outputs) * 31)
+	// Step 3: Estimate vsize using actual raw tx base size + witness estimates
+	// SerializeSizeStripped() gives exact non-witness size from the built transaction
+	baseTxSize := sweepTx.SerializeSizeStripped()
+	// Witness bytes: 2 (segwit marker+flag) + per-input witness data
+	// P2WSH 4-of-6 multisig+CLTV witness: ~503 bytes per input (use 510 for DER signature length variation)
+	//   breakdown: 1 (items count) + 1 (OP_0) + 4×72 (signatures) + 1 (script len) + 212 (witness script w/ CLTV)
+	// P2WPKH witness: ~107 bytes per input
+	//   breakdown: 1 (items count) + 1+71 (signature) + 1+33 (pubkey)
+	estimatedWitnessBytes := 2 + (numSweepInputs * 510) + (len(selectedFeeUtxos) * 108)
+	estimatedWeight := baseTxSize*4 + estimatedWitnessBytes
+	estimatedVsize := (estimatedWeight + 3) / 4 // ceiling division
 	fee := feeRate * float64(estimatedVsize) / 1000.0
-	fee = fee * 1.1 // 10% buffer for safety
-	fmt.Printf("Estimated fee: %.8f BTC (vsize: %d, rate: %.8f BTC/kB)\n", fee, estimatedVsize, feeRate)
+	fee = fee * 1.2 // 20% buffer for safety
+	fmt.Printf("Estimated fee: %.8f BTC (vsize: %d, baseTxSize: %d, rate: %.8f BTC/kB)\n", fee, estimatedVsize, baseTxSize, feeRate)
 
 	feeChangeAmount := math.Floor((feeTotal-fee)*1e8) / 1e8 // round down to satoshi precision
 	if feeChangeAmount <= 0 {
