@@ -92,12 +92,12 @@ func GenerateSweepTx(sweepAddress string, newSweepAddress string,
 		if feeChangeAddr == "" {
 			feeChangeAddr = u.Address
 		}
-		if feeTotal >= 0.001 {
+		if feeTotal >= 0.00001 {
 			break
 		}
 	}
-	if feeTotal < 0.001 {
-		return "", "", "", 0, 0, fmt.Errorf("insufficient fee wallet balance: %.8f BTC (need >= 0.001)", feeTotal)
+	if feeTotal < 0.00001 {
+		return "", "", "", 0, 0, fmt.Errorf("insufficient fee wallet balance: %.8f BTC (need >= 0.00001)", feeTotal)
 	}
 
 	fmt.Printf("Fee wallet: selected %d UTXOs, total %.8f BTC, change addr: %s\n", len(selectedFeeUtxos), feeTotal, feeChangeAddr)
