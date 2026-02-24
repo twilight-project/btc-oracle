@@ -28,12 +28,10 @@ var wg sync.WaitGroup
 
 func initialize() (string, string, *sql.DB) {
 	utils.InitConfigFile()
-	// btcPubkey := utils.GetBtcPublicKey()
 	comms.GetAllFragments()
 	dbconn := db.InitDB()
 	valAddr := viper.GetString("own_validator_address")
 	oracleAddr := viper.GetString("own_address")
-	// validator := viper.GetBool("validator")
 
 	allowed_modes := map[string]bool{
 		"judge":  true,
@@ -46,11 +44,6 @@ func initialize() (string, string, *sql.DB) {
 		panic("")
 	}
 
-	// btcPublicKey := viper.GetString("btc_xpublic_key")
-	// if validator == true || running_mode == "judge" {
-	// 	utils.SetDelegator(valAddr, oracleAddr, btcPublicKey)
-	// }
-
 	utils.LoadBtcWallet(viper.GetString("wallet_name"))
 	utils.LoadBtcWallet(viper.GetString("fee_wallet_name"))
 
@@ -61,7 +54,6 @@ func main() {
 	valAddr, oracleAddr, dbconn := initialize()
 	validator := viper.GetBool("validator")
 	running_mode := viper.GetString("running_mode")
-	// var upgrader = websocket.Upgrader{}
 	var WsHub *btcOracleTypes.Hub
 
 	var latestSweepTxHash = prometheus.NewGaugeVec(
@@ -111,8 +103,6 @@ func main() {
 		wg.Add(1)
 		go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, valAddr, WsHub)
 	}
-	// go servers.PubsubServer(WsHub, upgrader)
-
 	if running_mode == "signer" {
 		wg.Add(1)
 		go startTransactionSigner(accountName, dbconn, oracleAddr, valAddr, WsHub)
@@ -219,7 +209,6 @@ func startJudge(accountName string, dbconn *sql.DB, judgeAddr string, valAddr st
 	}
 
 	go address.ProcessProposeAddress(accountName, judgeAddr, dbconn)
-	// go judge.BroadcastOnBtc(dbconn)
 	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", dbconn, judgeAddr, valAddr, WsHub, nil)
 	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", dbconn, judgeAddr, valAddr, WsHub, latestRefundTxHash)
 	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", dbconn, judgeAddr, valAddr, WsHub, nil)

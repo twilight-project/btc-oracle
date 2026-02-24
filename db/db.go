@@ -142,26 +142,6 @@ func InsertSweepAddress(dbconn *sql.DB, address string, script string, preimage 
 	}
 }
 
-// func markProcessedSweepAddress(address string) {
-// 	_, err := dbconn.Exec("update address set archived = true where address = $1",
-// 		address,
-// 	)
-// 	if err != nil {
-// 		fmt.Println("An error occured while mark sweep address query: ", err)
-// 	}
-// }
-
-// not used yet
-// func updateAddressUnlockHeight(address string, height int) {
-// 	_, err := dbconn.Exec("update address set unlock_height = $1 where address = $2",
-// 		height,
-// 		address,
-// 	)
-// 	if err != nil {
-// 		fmt.Println("An error occured while update unlock height query: ", err)
-// 	}
-// }
-
 func MarkAddressSignedSweep(dbconn *sql.DB, address string) {
 	_, err := dbconn.Exec("update address set signed_sweep = $1 where address = $2",
 		true,
@@ -181,16 +161,6 @@ func MarkAddressBroadcastedSweep(dbconn *sql.DB, address string) {
 		fmt.Println("An error occured while mark sweep address signed query: ", err)
 	}
 }
-
-// func MarkAddressBroadcastedRefund(dbconn *sql.DB, address string) {
-// 	_, err := dbconn.Exec("update address set broadcast_refund = $1 where address = $2",
-// 		true,
-// 		address,
-// 	)
-// 	if err != nil {
-// 		fmt.Println("An error occured while mark sweep address signed query: ", err)
-// 	}
-// }
 
 func MarkAddressBroadcastedRefund(dbconn *sql.DB) {
 	_, err := dbconn.Exec("update address set broadcast_refund = true")
@@ -225,16 +195,6 @@ func MarkAddressSignedRefund(dbconn *sql.DB) {
 		fmt.Println("An error occured while mark sweep address signed query: ", err)
 	}
 }
-
-// func MarkAddressSignedRefund(dbconn *sql.DB, address string) {
-// 	_, err := dbconn.Exec("update address set signed_refund = $1 where address = $2",
-// 		true,
-// 		address,
-// 	)
-// 	if err != nil {
-// 		fmt.Println("An error occured while mark sweep address signed query: ", err)
-// 	}
-// }
 
 func QuerySweepAddressesByHeight(dbconn *sql.DB, height uint64, owned bool) []btcOracleTypes.SweepAddress {
 	// fmt.Println("getting address for height: ", height)
@@ -371,32 +331,6 @@ func QuerySweepAddress(dbconn *sql.DB, addr string) []btcOracleTypes.SweepAddres
 	return addresses
 }
 
-// func QueryAllSweepAddresses(dbconn *sql.DB) []btcOracleTypes.SweepAddress {
-// 	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where archived = false")
-// 	if err != nil {
-// 		fmt.Println("An error occured while query all sweep addresses: ", err)
-// 	}
-
-// 	defer DB_reader.Close()
-// 	addresses := make([]btcOracleTypes.SweepAddress, 0)
-
-// 	for DB_reader.Next() {
-// 		address := btcOracleTypes.SweepAddress{}
-// 		err := DB_reader.Scan(
-// 			&address.Address,
-// 			&address.Script,
-// 			&address.Preimage,
-// 			&address.Parent_address,
-// 		)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 		addresses = append(addresses, address)
-// 	}
-
-// 	return addresses
-// }
-
 func QueryUnsignedSweepAddressByScript(dbconn *sql.DB, script string) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select * from address where script = $1", script)
 	if err != nil {
@@ -487,80 +421,6 @@ func QuerySweepAddressScript(dbconn *sql.DB, address string) []byte {
 	return script
 }
 
-// func querySweepAddressByScript(script []byte) string {
-// 	DB_reader, err := dbconn.Query("select script from address where script = $1", script)
-// 	if err != nil {
-// 		fmt.Println("An error occured while query script: ", err)
-// 	}
-
-// 	defer DB_reader.Close()
-// 	var address string
-
-// 	for DB_reader.Next() {
-// 		err := DB_reader.Scan(
-// 			&address,
-// 		)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 	}
-
-// 	return address
-// }
-
-// func querySweepAddressPreimage(address string) []byte {
-// 	DB_reader, err := dbconn.Query("select preimage from address where address = $1", address)
-// 	if err != nil {
-// 		fmt.Println("An error occured while query preimage: ", err)
-// 	}
-
-// 	defer DB_reader.Close()
-// 	preimage := []byte{}
-
-// 	for DB_reader.Next() {
-// 		err := DB_reader.Scan(
-// 			&preimage,
-// 		)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 	}
-
-// 	return preimage
-// }
-
-// func querySweepAddressByParentAddress(address string) []SweepAddress {
-// 	DB_reader, err := dbconn.Query("select * from address where parent_address = $1", address)
-// 	if err != nil {
-// 		fmt.Println("An error occured while query address by parent address: ", err)
-// 	}
-
-// 	defer DB_reader.Close()
-// 	addresses := make([]SweepAddress, 0)
-
-// 	for DB_reader.Next() {
-// 		address := SweepAddress{}
-// 		err := DB_reader.Scan(
-// 			&address.Address,
-// 			&address.Script,
-// 			&address.Preimage,
-// 			&address.Unlock_height,
-// 			&address.Parent_address,
-// 			&address.Signed_refund,
-// 			&address.Signed_sweep,
-// 			&address.Archived,
-// 			&address.BroadcastSweep,
-// 			&address.BroadcastRefund,
-// 			&address.Owned,
-// 		)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 		addresses = append(addresses, address)
-// 	}
-// 	return addresses
-// }
-
 func QueryAllAddressOnly(dbconn *sql.DB) []string {
 	DB_reader, err := dbconn.Query("select address from address;")
 	if err != nil {
@@ -645,26 +505,6 @@ func InsertProposedAddress(dbconn *sql.DB, current string, proposed string, unlo
 		fmt.Println("An error occured while executing insert watched transaction query: ", err)
 	}
 }
-
-// func checkIfAddressIsProposed(roundID int64, reserveID int64) int {
-// 	DB_reader, err := dbconn.Query("select sum(proposed) from proposed_address where round_id = $1, reserve_id = $2;", roundID, reserveID)
-// 	if err != nil {
-// 		fmt.Println("An error occured while query proposed addresses: ", err)
-// 	}
-
-// 	defer DB_reader.Close()
-// 	var length int
-
-// 	for DB_reader.Next() {
-// 		err := DB_reader.Scan(
-// 			&length,
-// 		)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 	}
-// 	return length
-// }
 
 func CheckIfAddressIsProposed(dbconn *sql.DB, roundID int64, reserveId uint64) bool {
 	DB_reader, err := dbconn.Query("SELECT 1 FROM proposed_address WHERE round_id = $1 and reserve_id = $2 LIMIT 1;", roundID, reserveId)

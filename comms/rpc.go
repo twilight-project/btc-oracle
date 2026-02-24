@@ -188,16 +188,6 @@ type RPCResponseCreatePsbt struct {
 	ID    int         `json:"id"`
 }
 
-type RPCResponseFundRawTx struct {
-	Result struct {
-		Hex       string  `json:"hex"`
-		Fee       float64 `json:"fee"`
-		Changepos float32 `json:"changepos"`
-	} `json:"result"`
-	Error interface{} `json:"error"`
-	ID    int         `json:"id"`
-}
-
 type RPCResponseSignPsbt struct {
 	Result struct {
 		Psbt      string  `json:"psbt"`
@@ -396,41 +386,6 @@ func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	return response.Result, nil
 }
 
-func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string, feeRate float64, feeOutputIdx int) (string, error) {
-
-	var subtract []int
-	if feeOutputIdx >= 0 {
-		// Fee wallet pays: subtract fee only from the fee wallet output
-		subtract = []int{feeOutputIdx}
-	} else {
-		// Original behavior: subtract fee from all outputs
-		subtract = make([]int, 0, len(outputs))
-		for i := range outputs {
-			subtract = append(subtract, i)
-		}
-	}
-
-	// Options map for walletcreatefundedpsbt
-	options := map[string]interface{}{
-		"feeRate":                feeRate,
-		"subtractFeeFromOutputs": subtract,
-	}
-
-	data := []interface{}{inputs, outputs, locktime, options}
-	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet)
-	fmt.Println("result Create Psbt: ", string(result))
-	var response RPCResponseCreatePsbt
-	err := json.Unmarshal(result, &response)
-	if err != nil {
-		fmt.Println("Error unmarshalling JSON: ", err)
-		return "", err
-	}
-	if response.Error != nil {
-		return "", errors.New("error in CreatePSBT")
-	}
-	return response.Result.Psbt, nil
-}
-
 func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string) (string, error) {
 	data := []interface{}{inputs, outputs, locktime}
 	result, _ := SendRPC("createrawtransaction", data, wallet)
@@ -447,41 +402,6 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 	}
 
 	return response.Result, nil
-}
-
-func FundRawTx(txHex string, feeRate float64, outputs []TxOutput, wallet string, feeOutputIdx int) (string, error) {
-	var subtract []int
-	if feeOutputIdx >= 0 {
-		// Fee wallet pays: subtract fee only from the fee wallet output
-		subtract = []int{feeOutputIdx}
-	} else {
-		// Original behavior: subtract fee from all outputs
-		subtract = make([]int, 0, len(outputs))
-		for i := range outputs {
-			subtract = append(subtract, i)
-		}
-	}
-
-	options := map[string]interface{}{
-		"feeRate":                feeRate,
-		"subtractFeeFromOutputs": subtract,
-	}
-
-	data := []interface{}{txHex, options}
-
-	result, err := SendRPC("fundrawtransaction", data, wallet)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Println("result in FundRawTx:", string(result))
-
-	var response RPCResponseFundRawTx
-	if err := json.Unmarshal(result, &response); err != nil {
-		return "", err
-	}
-
-	return response.Result.Hex, nil
 }
 
 func ConvertToPsbt(txHex string, wallet string) (string, error) {

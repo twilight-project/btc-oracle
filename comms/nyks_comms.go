@@ -130,19 +130,6 @@ func SendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Cli
 	fmt.Println("error in sending unsigned Refund transaction after 5 attempts: ", err)
 }
 
-// func SendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterJudge) {
-// 	var err error
-// 	for i := 0; i < 5; i++ {
-// 		_, err = cosmos.BroadcastTx(accountName, data)
-// 		if err == nil {
-// 			return
-// 		}
-// 		fmt.Println("error in sending register judge transaction, retrying... : ", err)
-// 		time.Sleep(10 * time.Second)
-// 	}
-// 	fmt.Println("error in sending register judge transaction after 5 attempts: ", err)
-// }
-
 func SendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
@@ -239,24 +226,6 @@ func GetCurrentSequence(accountName string, cosmos cosmosclient.Client) (uint64,
 	return seq, nil
 }
 
-// func getAccountSequence(cosmos cosmosclient.Client, address string) (uint64, error) {
-// 	accAddress, err := sdk.AccAddressFromBech32(address)
-// 	if err != nil {
-// 		return 0, fmt.Errorf("invalid account address: %v", err)
-// 	}
-
-// 	// Get the account keeper from the Cosmos client
-// 	accKeeper := cosmos.App().AccountKeeper()
-
-// 	// Retrieve the account using the account keeper
-// 	account := accKeeper.GetAccount(cosmos.Context(), accAddress)
-// 	if account == nil {
-// 		return 0, fmt.Errorf("account %s does not exist", accAddress)
-// 	}
-
-// 	return account.GetSequence(), nil
-// }
-
 func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
 	address, err := cosmos.Address(accountName)
 	if err != nil {
@@ -264,44 +233,6 @@ func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.A
 	}
 	return address
 }
-
-// func getDepositAddresses() QueryDepositAddressResp {
-// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
-// 	if err != nil {
-// 		fmt.Println("error getting deposit addresses : ", err)
-// 	}
-// 	//We Read the response body on the line below.
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		fmt.Println("error getting deposit addresses body : ", err)
-// 	}
-
-// 	a := QueryDepositAddressResp{}
-// 	err = json.Unmarshal(body, &a)
-// 	if err != nil {
-// 		fmt.Println("error unmarshalling deposit addresses : ", err)
-// 	}
-// 	return a
-// }
-
-// func getDepositAddress(address string) DepositAddress {
-// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_address/" + address)
-// 	if err != nil {
-// 		fmt.Println("error getting deposit addresses : ", err)
-// 	}
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		fmt.Println("error getting deposit addresses body : ", err)
-// 	}
-// 	a := DepositAddress{}
-// 	err = json.Unmarshal(body, &a)
-// 	if err != nil {
-// 		fmt.Println("error unmarshalling deposit addresses : ", err)
-// 	}
-// 	return a
-// }
 
 func GetAllDepositAddress() btcOracleTypes.QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
@@ -342,24 +273,6 @@ func GetAttestations(limit string) btcOracleTypes.NyksAttestaionBlock {
 
 	return a
 }
-
-// func getAttestationsSweepProposal() AttestaionBlockSweep {
-// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=20&order_by=desc&proposal_type=2")
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-// 	//We Read the response body on the line below.
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-
-// 	a := AttestaionBlockSweep{}
-// 	err = json.Unmarshal(body, &a)
-
-// 	return a
-// }
 
 func GetAllFragments() btcOracleTypes.Fragments {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
@@ -551,26 +464,6 @@ func GetReserveAddresses() btcOracleTypes.ReserveAddressResp {
 	return a
 }
 
-// func GetRegisteredJudges() btcOracleTypes.RegisteredJudgeResp {
-// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_judges")
-// 	if err != nil {
-// 		fmt.Println("error getting registered judges : ", err)
-// 	}
-// 	//We Read the response body on the line below.
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		fmt.Println("error getting registered judges body : ", err)
-// 	}
-
-// 	a := btcOracleTypes.RegisteredJudgeResp{}
-// 	err = json.Unmarshal(body, &a)
-// 	if err != nil {
-// 		fmt.Println("error unmarshalling registered judges : ", err)
-// 	}
-// 	return a
-// }
-
 func GetBtcReserves() btcOracleTypes.BtcReserveResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/volt/btc_reserve")
@@ -590,26 +483,6 @@ func GetBtcReserves() btcOracleTypes.BtcReserveResp {
 	}
 	return a
 }
-
-// func getProposedSweepAddresses() ProposedAddressesResp {
-// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/24")
-// 	if err != nil {
-// 		fmt.Println("error getting proposed address : ", err)
-// 	}
-// 	//We Read the response body on the line below.
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		fmt.Println("error getting proposed address body : ", err)
-// 	}
-
-// 	a := ProposedAddressesResp{}
-// 	err = json.Unmarshal(body, &a)
-// 	if err != nil {
-// 		fmt.Println("error unmarshalling proposed address : ", err)
-// 	}
-// 	return a
-// }
 
 func GetProposedSweepAddress(reserveId uint64, roundId uint64) btcOracleTypes.ProposedAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))

@@ -290,7 +290,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress btcOracleTypes.SweepAddress, judgeAddr string) []byte {
 	currentReserveScript := string(currentReserveAddress.Script)
-	//encoded := hex.EncodeToString(currentReserveScript)
+
 	fmt.Println("currentReserveScript in GenerateSignedSweepTx : ", currentReserveScript)
 	decodedScript := utils.DecodeBtcScript(currentReserveScript)
 	minSignsRequired := utils.GetMinSignFromScript(decodedScript)
@@ -317,32 +317,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		}
 
 		script, _ := hex.DecodeString(currentReserveScript)
-		// preimage := currentReserveAddress.Preimage
 
-		// remove after watchtower is done
-		// psbtHex := comms.GetUnsignedSweepTx(reserveId, roundId).UnsignedTxSweepMsg.BtcUnsignedSweepTx
-		// the Sweep tx sent to the chain is in Hex format
-		// encode it into base64 before passing to the decodePsbt function
-		// psbt, _ := utils.HexToBase64(psbtHex)
-		// psbtStruct, err := comms.DecodePsbt(psbt, wallet)
-		// if err != nil {
-		// 	fmt.Println("error decoding psbt : inside processSweep Watchtower : ", err)
-		// 	return nil
-		// }
-		// currentReserveScript = psbtStruct.Inputs[0].WitnessScript.Asm
-		// signedPsbt, err := comms.SignPsbt(psbt, wallet)
-		// if err != nil {
-		// 	fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
-		// 	return nil
-		// }
-
-		// if len(signedPsbt) <= 0 {
-		// 	fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
-		// 	return nil
-		// }
-		// watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
-
-		//////////////
 		// Signers only sign sweep inputs (not fee inputs), so signature count = sweep input count
 		numSweepInputs := len(filteredSweepSignatures[0].SweepSignature)
 		fmt.Printf("Total inputs: %d, Sweep inputs: %d, Fee inputs: %d\n", len(sweepTx.TxIn), numSweepInputs, len(sweepTx.TxIn)-numSweepInputs)
@@ -406,7 +381,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	newReserveAddress := addresses[0]
 
 	newReserveScript := string(newReserveAddress.Script)
-	//encoded := hex.EncodeToString(newReserveScript)
+
 	fmt.Println("newReserveScript in GenerateSignedRefundTx \n : ", newReserveScript)
 	decodedScript := utils.DecodeBtcScript(newReserveScript)
 	minSignsRequired := utils.GetMinSignFromScript(decodedScript)
@@ -469,15 +444,6 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		return signedRefundTx.Bytes(), newReserveAddress, nil
 	}
 }
-
-// func InitJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string) {
-// 	fmt.Println("init judge")
-// 	addr := db.QueryAllSweepAddresses(dbconn)
-// 	if len(addr) <= 0 {
-// 		time.Sleep(2 * time.Minute)
-// 		initReserve(accountName, oracleAddr, valAddr, dbconn)
-// 	}
-// }
 
 func InitReserve(accountName string, judgeAddr string, valAddr string, dbconn *sql.DB) {
 	fmt.Println("init reserve")
@@ -930,31 +896,3 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	fmt.Println("finishing signed refund process")
 }
 
-// func BroadcastOnBtc(dbconn *sql.DB) {
-// 	fmt.Println("Started Btc Broadcaster")
-// 	for {
-// 		resp := comms.GetAttestations("3")
-// 		if len(resp.Attestations) <= 0 {
-// 			time.Sleep(1 * time.Minute)
-// 			fmt.Println("no attestaions (btc broadcaster)")
-// 			continue
-// 		}
-
-// 		for _, attestation := range resp.Attestations {
-// 			if !attestation.Observed {
-// 				continue
-// 			}
-// 			height, _ := strconv.Atoi(attestation.Proposal.Height)
-// 			txs := db.QuerySignedTx(dbconn, int64(height))
-// 			for _, tx := range txs {
-// 				transaction := hex.EncodeToString(tx)
-// 				wireTransaction, err := utils.CreateTxFromHex(transaction)
-// 				if err != nil {
-// 					fmt.Println("error decodeing signed transaction btc broadcaster : ", err)
-// 				}
-// 				utils.BroadcastBtcTransaction(wireTransaction)
-// 				db.DeleteSignedTx(dbconn, tx)
-// 			}
-// 		}
-// 	}
-// }

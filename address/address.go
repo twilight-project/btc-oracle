@@ -2,7 +2,6 @@ package address
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -19,21 +18,7 @@ import (
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
-
-	"golang.org/x/crypto/ripemd160"
 )
-
-func hash160(data []byte) []byte {
-	hash := sha256.Sum256(data)
-	ripemdHash := ripemd160.New()
-	_, err := ripemdHash.Write(hash[:])
-	if err != nil {
-		fmt.Println("Error computing hash:", err)
-		return nil
-	}
-	hash160 := ripemdHash.Sum(nil)
-	return hash160
-}
 
 func Preimage() ([]byte, error) {
 	preimage := make([]byte, 32)
