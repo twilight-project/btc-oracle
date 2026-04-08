@@ -146,13 +146,13 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 				fmt.Println(n.Height)
 				fmt.Println(tx.Round)
 				fmt.Println(accountName)
-				uheight := 0
+				var uheight uint64
 				addrs := db.QuerySweepAddress(dbconn, n.Receiving)
 				if len(addrs) <= 0 {
 					fmt.Println("address not found in DB")
 					uheight = n.Height
 				} else {
-					uheight = addrs[0].Unlock_height
+					uheight = uint64(addrs[0].Unlock_height)
 				}
 
 				msg := &bridgetypes.MsgSweepProposal{
@@ -161,7 +161,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 					JudgeAddress:          reserve.JudgeAddress,
 					BtcRelayCapacityValue: 0,
 					BtcTxHash:             n.Receiving_txid,
-					UnlockHeight:          uint64(uheight),
+					UnlockHeight:          uheight,
 					RoundId:               uint64(tx.Round),
 					BtcBlockNumber:        uint64(n.Height),
 					OracleAddress:         oracleAddr,
