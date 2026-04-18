@@ -450,7 +450,7 @@ func GetUnsignedRefundTx(reserveId int64, roundId int64) btcOracleTypes.Unsigned
 
 func GetAllUnsignedRefundTx() btcOracleTypes.UnsignedTxRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=100")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=1")
 	if err != nil {
 		log.Fatalln(err)
 	}
