@@ -14,14 +14,13 @@ import (
 	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ignite/cli/ignite/pkg/cosmosclient"
 	"github.com/spf13/viper"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
-	forktypes "github.com/twilight-project/nyks/x/forks/types"
+	bridgetypes "twilight-project/nyks/x/bridge/types"
+	forktypes "twilight-project/nyks/x/forks/types"
 )
 
-func SendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgProposeSweepAddress) {
+func SendTransactionSweepAddressProposal(accountName string, cosmos Client, data *bridgetypes.MsgProposeSweepAddress) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -35,9 +34,9 @@ func SendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient
 	fmt.Println("error in sending sweep address proposal after 5 attempts: ", err)
 }
 
-func SendTransactionRegisterReserveAddress(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterReserveAddress) (cosmosclient.Response, error) {
+func SendTransactionRegisterReserveAddress(accountName string, cosmos Client, data *bridgetypes.MsgRegisterReserveAddress) (Response, error) {
 	var err error
-	var resp cosmosclient.Response
+	var resp Response
 	for i := 0; i < 5; i++ {
 		resp, err = cosmos.BroadcastTx(accountName, data)
 		if err == nil {
@@ -51,7 +50,7 @@ func SendTransactionRegisterReserveAddress(accountName string, cosmos cosmosclie
 	return resp, err
 }
 
-func SendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
+func SendTransactionSeenBtcChainTip(accountName string, cosmos Client, data *forktypes.MsgSeenBtcChainTip) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -69,7 +68,7 @@ func SendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Clie
 	fmt.Println("error in chaintip transaction after 5 attempts: ", err)
 }
 
-func SendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {
+func SendTransactionConfirmBtcdeposit(accountName string, cosmos Client, data *bridgetypes.MsgConfirmBtcDeposit) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -83,7 +82,7 @@ func SendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Cl
 	fmt.Println("error in confirm deposit transaction after 5 attempts: ", err)
 }
 
-func SendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
+func SendTransactionSweepProposal(accountName string, cosmos Client, data *bridgetypes.MsgSweepProposal) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -97,7 +96,7 @@ func SendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client
 	fmt.Println("error in sending sweep transaction proposal after 5 attempts: ", err)
 }
 
-func SendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxSweep) {
+func SendTransactionUnsignedSweepTx(accountName string, cosmos Client, data *bridgetypes.MsgUnsignedTxSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -111,7 +110,7 @@ func SendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Clie
 	fmt.Println("error in sending unsigned sweep transaction after 5 attempts: ", err)
 }
 
-func SendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxRefund) {
+func SendTransactionUnsignedRefundTx(accountName string, cosmos Client, data *bridgetypes.MsgUnsignedTxRefund) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -130,7 +129,7 @@ func SendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Cli
 	fmt.Println("error in sending unsigned Refund transaction after 5 attempts: ", err)
 }
 
-// func SendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterJudge) {
+// func SendTransactionRegisterJudge(accountName string, cosmos Client, data *bridgetypes.MsgRegisterJudge) {
 // 	var err error
 // 	for i := 0; i < 5; i++ {
 // 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -143,7 +142,7 @@ func SendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Cli
 // 	fmt.Println("error in sending register judge transaction after 5 attempts: ", err)
 // }
 
-func SendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
+func SendTransactionSignSweep(accountName string, cosmos Client, data *bridgetypes.MsgSignSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -157,7 +156,7 @@ func SendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 	fmt.Println("Error in sending sweep signature after 5 attempts: ", err)
 }
 
-func SendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignRefund) {
+func SendTransactionSignRefund(accountName string, cosmos Client, data *bridgetypes.MsgSignRefund) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -171,7 +170,7 @@ func SendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, d
 	fmt.Println("Error in sending refund signature after 5 attempts: ", err)
 }
 
-func SendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
+func SendTransactionBroadcastSweeptx(accountName string, cosmos Client, data *bridgetypes.MsgBroadcastTxSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -184,7 +183,7 @@ func SendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Cli
 	fmt.Println("error in Broadcasting Sweep Tx transaction after 5 attempts: ", err)
 }
 
-func SendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxRefund) {
+func SendTransactionBroadcastRefundtx(accountName string, cosmos Client, data *bridgetypes.MsgBroadcastTxRefund) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -202,7 +201,7 @@ func SendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Cl
 	fmt.Println("error in Broadcasting Refund Tx transaction after 5 attempts: ", err)
 }
 
-func GetCosmosClient() cosmosclient.Client {
+func GetCosmosClient() Client {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -210,16 +209,15 @@ func GetCosmosClient() cosmosclient.Client {
 
 	homePath := filepath.Join(home, ".nyks")
 
-	cosmosOptions := []cosmosclient.Option{
-		cosmosclient.WithHome(homePath),
-		cosmosclient.WithKeyringBackend("test"),
+	cosmosOptions := []Option{
+		WithHome(homePath),
+		WithKeyringBackend("test"),
 	}
 
-	config := sdktypes.GetConfig()
-	config.SetBech32PrefixForAccount("twilight", "twilight"+"pub")
+	// bech32 prefix is set inside New()
+	_ = sdktypes.GetConfig()
 
-	// create an instance of cosmosclient
-	cosmos, err := cosmosclient.New(context.Background(), cosmosOptions...)
+	cosmos, err := New(context.Background(), cosmosOptions...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -227,7 +225,7 @@ func GetCosmosClient() cosmosclient.Client {
 	return cosmos
 }
 
-func GetCurrentSequence(accountName string, cosmos cosmosclient.Client) (uint64, error) {
+func GetCurrentSequence(accountName string, cosmos Client) (uint64, error) {
 	accAddr := getCosmosAddress(accountName, cosmos)
 
 	accRetriever := cosmos.Context().AccountRetriever
@@ -239,7 +237,7 @@ func GetCurrentSequence(accountName string, cosmos cosmosclient.Client) (uint64,
 	return seq, nil
 }
 
-// func getAccountSequence(cosmos cosmosclient.Client, address string) (uint64, error) {
+// func getAccountSequence(cosmos Client, address string) (uint64, error) {
 // 	accAddress, err := sdk.AccAddressFromBech32(address)
 // 	if err != nil {
 // 		return 0, fmt.Errorf("invalid account address: %v", err)
@@ -257,7 +255,7 @@ func GetCurrentSequence(accountName string, cosmos cosmosclient.Client) (uint64,
 // 	return account.GetSequence(), nil
 // }
 
-func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
+func getCosmosAddress(accountName string, cosmos Client) sdktypes.AccAddress {
 	address, err := cosmos.Address(accountName)
 	if err != nil {
 		log.Fatal(err)

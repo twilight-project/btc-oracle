@@ -22,7 +22,7 @@ import (
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
+	bridgetypes "twilight-project/nyks/x/bridge/types"
 )
 
 func GenerateSweepTx(sweepAddress string, newSweepAddress string,
@@ -606,7 +606,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 			return
 		}
 		cosmos := comms.GetCosmosClient()
-		msg := bridgetypes.NewMsgUnsignedTxSweep(sweepTxId, psbt, uint64(reserveId), uint64(roundId+1), judgeAddr)
+		msg := &bridgetypes.MsgUnsignedTxSweep{TxId: sweepTxId, BtcUnsignedSweepTx: psbt, ReserveId: uint64(reserveId), RoundId: uint64(roundId+1), JudgeAddress: judgeAddr}
 		comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
 		db.InsertUnSignedSweeptx(dbconn, sweepTxHex, int64(reserveId), int64(roundId+1))
 		db.MarkAddressArchived(dbconn, currentSweepAddress.Address)
@@ -698,7 +698,7 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	refundTxHex := sweepTxs[0].Tx
 
 	cosmos := comms.GetCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveId), uint64(roundId+1), refundTxHex, judgeAddr)
+	msg := &bridgetypes.MsgUnsignedTxRefund{ReserveId: uint64(reserveId), RoundId: uint64(roundId+1), BtcUnsignedRefundTx: refundTxHex, JudgeAddress: judgeAddr}
 	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 	db.InsertUnSignedRefundtx(dbconn, refundTxHex, int64(reserveId), int64(roundId+1))
 	fmt.Println("finishing refund process")

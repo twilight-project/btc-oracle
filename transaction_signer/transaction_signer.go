@@ -11,7 +11,7 @@ import (
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	"github.com/twilight-project/forkoracle-go/utils"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
+	bridgetypes "twilight-project/nyks/x/bridge/types"
 )
 
 func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string) {

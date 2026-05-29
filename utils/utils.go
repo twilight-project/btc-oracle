@@ -18,7 +18,7 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"

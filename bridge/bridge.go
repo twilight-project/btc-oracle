@@ -16,8 +16,8 @@ import (
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	"github.com/twilight-project/nyks/x/bridge/types"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
+	"twilight-project/nyks/x/bridge/types"
+	bridgetypes "twilight-project/nyks/x/bridge/types"
 )
 
 func WatchAddress(url url.URL, dbconn *sql.DB) {

@@ -18,7 +18,7 @@ import (
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
+	bridgetypes "twilight-project/nyks/x/bridge/types"
 
 	"golang.org/x/crypto/ripemd160"
 )

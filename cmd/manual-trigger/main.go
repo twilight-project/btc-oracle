@@ -17,7 +17,7 @@ import (
 	"github.com/twilight-project/forkoracle-go/transaction_signer"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
+	bridgetypes "twilight-project/nyks/x/bridge/types"
 )
 
 const (
@@ -344,7 +344,7 @@ func runProcessSweepDirect(accountName string, judgeAddr string, dbconn *sql.DB)
 	// Step 7: Broadcast to chain
 	fmt.Println("[DEBUG] Broadcasting unsigned sweep tx to chain...")
 	cosmos := comms.GetCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxSweep(sweepTxId, psbt, uint64(reserveId), uint64(roundId), judgeAddr)
+	msg := &bridgetypes.MsgUnsignedTxSweep{TxId: sweepTxId, BtcUnsignedSweepTx: psbt, ReserveId: uint64(reserveId), RoundId: uint64(roundId), JudgeAddress: judgeAddr}
 	comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
 	fmt.Println("[DEBUG] Broadcast complete")
 

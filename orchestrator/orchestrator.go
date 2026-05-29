@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	"github.com/twilight-project/nyks/x/forks/types"
+	"twilight-project/nyks/x/forks/types"
 )
 
 func Orchestrator(accountName string, forkscanner_url url.URL, oracleAddr string, wg *sync.WaitGroup) {
