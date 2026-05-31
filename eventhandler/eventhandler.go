@@ -1,12 +1,13 @@
 package eventhandler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/gorilla/websocket"
+	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/twilight-project/forkoracle-go/address"
@@ -17,70 +18,36 @@ import (
 
 func NyksEventListener(event string, accountName string, functionCall string, dbconn *sql.DB,
 	oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
-	headers := make(map[string][]string)
-	headers["Content-Type"] = []string{"application/json"}
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_socket_url"))
+
+	rpcAddr := viper.GetString("nyksd_rpc_url")
+	if rpcAddr == "" {
+		rpcAddr = "http://127.0.0.1:26657"
+	}
+	query := fmt.Sprintf("tm.event='Tx' AND message.action='%s'", event)
 
 	for {
-		conn, _, err := websocket.DefaultDialer.Dial(nyksd_url, headers)
+		client, err := rpchttp.New(rpcAddr, "/websocket")
 		if err != nil {
-			fmt.Println("nyks event listener dial:", err)
+			fmt.Println("nyks event listener create client:", err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		// Set up ping/pong connection health check
-		pingPeriod := 30 * time.Second
-		pongWait := 60 * time.Second
-		stopChan := make(chan struct{})
-
-		conn.SetReadDeadline(time.Now().Add(pongWait))
-		conn.SetPongHandler(func(string) error {
-			conn.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
-
-		go func() {
-			ticker := time.NewTicker(pingPeriod)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ticker.C:
-					if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-						return
-					}
-				case <-stopChan:
-					return
-				}
-			}
-		}()
-
-		payload := fmt.Sprintf(`{
-        "jsonrpc": "2.0",
-        "method": "subscribe",
-        "id": 0,
-        "params": {
-            "query": "tm.event='Tx' AND message.action='%s'"
-        }
-    }`, event)
-
-		if err = conn.WriteMessage(websocket.TextMessage, []byte(payload)); err != nil {
-			fmt.Println("error in nyks event handler: ", err)
-			close(stopChan)
-			conn.Close()
+		if err := client.Start(); err != nil {
+			fmt.Println("nyks event listener start:", err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		for {
-			_, _, err := conn.ReadMessage()
-			if err != nil {
-				fmt.Println("error in nyks event handler: ", err)
-				close(stopChan)
-				conn.Close()
-				break
-			}
+		eventCh, err := client.Subscribe(context.Background(), "nyks-oracle", query)
+		if err != nil {
+			fmt.Println("nyks event listener subscribe:", err)
+			client.Stop() //nolint:errcheck
+			time.Sleep(10 * time.Second)
+			continue
+		}
 
+		for range eventCh {
 			switch functionCall {
 			case "signed_sweep_process":
 				go judge.ProcessSignedSweep(accountName, oracleAddr, dbconn)
@@ -103,6 +70,8 @@ func NyksEventListener(event string, accountName string, functionCall string, db
 			}
 		}
 
+		fmt.Println("nyks event listener disconnected, reconnecting...")
+		client.Stop() //nolint:errcheck
 		time.Sleep(10 * time.Second)
 	}
 }
