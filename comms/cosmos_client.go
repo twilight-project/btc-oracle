@@ -19,8 +19,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/spf13/viper"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -104,16 +104,6 @@ func New(_ context.Context, opts ...Option) (Client, error) {
 		return Client{}, fmt.Errorf("grpc dial %s: %w", grpcAddr, err)
 	}
 
-	// CometBFT RPC client (needed for BroadcastTx)
-	rpcAddr := viper.GetString("nyksd_rpc")
-	if rpcAddr == "" {
-		rpcAddr = "tcp://localhost:26657"
-	}
-	rpcClient, err := rpchttp.New(rpcAddr, "/websocket")
-	if err != nil {
-		return Client{}, fmt.Errorf("create rpc client %s: %w", rpcAddr, err)
-	}
-
 	chainID := viper.GetString("chain_id")
 	if chainID == "" {
 		chainID = "nyks"
@@ -125,8 +115,6 @@ func New(_ context.Context, opts ...Option) (Client, error) {
 		WithTxConfig(txCfg).
 		WithKeyring(kr).
 		WithGRPCClient(grpcConn).
-		WithClient(rpcClient).
-		WithNodeURI(rpcAddr).
 		WithBroadcastMode("sync").
 		WithAccountRetriever(authtypes.AccountRetriever{})
 
@@ -185,11 +173,16 @@ func (c Client) BroadcastTx(accountName string, msg sdk.Msg) (Response, error) {
 		return Response{}, fmt.Errorf("encode tx: %w", err)
 	}
 
-	res, err := ctx.BroadcastTx(txBytes)
+	txClient := txtypes.NewServiceClient(c.clientCtx.GRPCClient)
+	grpcRes, err := txClient.BroadcastTx(context.Background(), &txtypes.BroadcastTxRequest{
+		TxBytes: txBytes,
+		Mode:    txtypes.BroadcastMode_BROADCAST_MODE_SYNC,
+	})
 	if err != nil {
 		return Response{}, fmt.Errorf("broadcast tx: %w", err)
 	}
 
+	res := grpcRes.TxResponse
 	if res.Code != 0 {
 		return Response{TxHash: res.TxHash}, fmt.Errorf("tx failed (code %d): %s", res.Code, res.RawLog)
 	}
