@@ -129,7 +129,7 @@ func main() {
 func startBtcTxBroadcaster(dbconn *sql.DB) {
 	for {
 		resp := comms.GetAttestations("1")
-		if len(resp.Attestations) < 0 {
+		if len(resp.Attestations) == 0 {
 			time.Sleep(3 * time.Minute)
 			continue
 		}
