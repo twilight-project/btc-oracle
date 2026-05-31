@@ -14,6 +14,7 @@ import (
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -77,6 +78,7 @@ func New(_ context.Context, opts ...Option) (Client, error) {
 
 	// interface registry + codec
 	registry := codectypes.NewInterfaceRegistry()
+	cryptocodec.RegisterInterfaces(registry)
 	authtypes.RegisterInterfaces(registry)
 	bridgetypes.RegisterInterfaces(registry)
 	forktypes.RegisterInterfaces(registry)
